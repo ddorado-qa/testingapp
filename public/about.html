@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Acerca de</title>
+  <script src="logger.js"></script>
+</head>
+<body>
+  <h1 qa-id="title-about">Acerca de la Aplicación</h1>
+  <p qa-id="about-description">
+    Esta aplicación fue construida para pruebas QA E2E intensivas.
+  </p>
+  <ul qa-id="about-features">
+    <li>Dockerizado</li>
+    <li>QA-ID en todos los elementos</li>
+    <li>Logging incorporado</li>
+  </ul>
+  <button onclick="logEvent('about', 'Visited Acerca de')" qa-id="btn-log-about">Log Visita</button>
+  <a href="/" qa-id="link-home">Inicio</a>
+</body>
+</html>

@@ -1,0 +1,119 @@
+=======================================
+INICIO FICHERO >> ./Makefile
+=======================================
+# Comentarios claros
+# Comandos para manejar la aplicación dockerizada y su entorno
+
+# Nombre del servicio contenedor backend
+BACKEND_SERVICE=qaapp-backend
+FRONTEND_SERVICE=qaapp-frontend
+
+# Instalación de dependencias en contenedores
+install:
+	docker-compose run --rm $(BACKEND_SERVICE) sh -c "npm install"
+	docker-compose run --rm $(FRONTEND_SERVICE) sh -c "npm install"
+
+# Levanta el stack dockerizado en segundo plano y muestra logs
+up: install
+	docker-compose up -d
+	@echo "⌛ Esperando unos segundos para iniciar logs..."
+	sleep 3
+	docker-compose logs -f
+
+# Ver logs de todos los servicios
+logs:
+	docker-compose logs -f
+
+# Reinicia la aplicación completa
+restart:
+	docker-compose down
+	make up
+
+# Detiene los contenedores
+down:
+	docker-compose down
+
+# Limpia contenedores y volúmenes
+clean:
+	docker-compose down -v
+	docker system prune -f
+
+# Bash en el backend
+bash:
+	docker exec -it $(BACKEND_SERVICE) sh
+=======================================
+FIN FICHERO >> ./Makefile
+=======================================
+=======================================
+INICIO FICHERO >> ./Makefile.dev
+=======================================
+# Makefile para modo desarrollo interactivo con nodemon/vite
+
+BACKEND_SERVICE=qaapp-backend
+FRONTEND_SERVICE=qaapp-frontend
+
+# Instala dependencias solo si no existen node_modules
+install:
+	docker-compose run --rm $(BACKEND_SERVICE) sh -c "npm install"
+	docker-compose run --rm $(FRONTEND_SERVICE) sh -c "npm install"
+
+# Ejecuta backend con nodemon y frontend en modo dev
+dev: install
+	@echo "🚀 Iniciando entorno de desarrollo..."
+	docker-compose up --build
+
+# Ver logs del desarrollo
+logs:
+	docker-compose logs -f
+
+# Reinicia los contenedores en modo dev
+restart:
+	docker-compose down
+	make dev
+
+# Entra al contenedor backend
+bash:
+	docker exec -it $(BACKEND_SERVICE) sh
+
+# Limpia el entorno
+clean:
+	docker-compose down -v
+	docker system prune -f
+=======================================
+FIN FICHERO >> ./Makefile.dev
+=======================================
+=======================================
+INICIO FICHERO >> ./docker-compose.yml
+=======================================
+# Orquesta el frontend y backend para QA App
+
+version: '3.8'
+
+services:
+  qaapp-backend:
+    container_name: qaapp-backend
+    build:
+      context: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+    command: sh -c "npx nodemon server.js"
+    environment:
+      - NODE_ENV=development
+
+  qaapp-frontend:
+    container_name: qaapp-frontend
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm run dev"
+    environment:
+      - NODE_ENV=development
+=======================================
+FIN FICHERO >> ./docker-compose.yml
+=======================================
+

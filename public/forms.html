@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title id="form-title">Formulario</title>
+  <script src="logger.js"></script>
+  <script>
+    const lang = localStorage.getItem("lang") || "es";
+    document.write(`<script src="/lang/i18n_${lang}.js"><\/script>`);
+  </script>
+</head>
+<body>
+  <h1 qa-id="title-forms" id="title-label"></h1>
+  <form qa-id="form-register">
+    <label><span id="label-name"></span><input type="text" qa-id="input-name"></label><br>
+    <label><span id="label-email"></span><input type="email" qa-id="input-email"></label><br>
+    <button type="submit" qa-id="btn-submit-form" id="btn-label"></button>
+  </form>
+  <script>
+    window.onload = () => {
+      document.getElementById('title-label').innerText = i18n.title;
+      document.getElementById('label-name').innerText = i18n.name + ": ";
+      document.getElementById('label-email').innerText = i18n.email + ": ";
+      document.getElementById('btn-label').innerText = i18n.submit;
+      logEvent("form_translate", lang);
+    }
+  </script>
+  <a href="/" qa-id="link-home">Inicio</a>
+</body>
+</html>

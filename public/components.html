@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Componentes</title>
+<script>
+function toggleModal() {
+  const modal = document.getElementById('modal');
+  modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+}
+</script>
+</head>
+<body>
+  <h1 qa-id="title-components">Componentes UI</h1>
+
+  <div qa-id="tabs">
+    <button qa-id="tab-1">Tab 1</button>
+    <button qa-id="tab-2">Tab 2</button>
+    <div qa-id="tab-content">Contenido aquí...</div>
+  </div>
+
+  <button onclick="toggleModal()" qa-id="btn-open-modal">Abrir Modal</button>
+  <div id="modal" qa-id="modal" style="display:none;border:1px solid black;padding:10px">
+    <p qa-id="modal-content">Este es un modal</p>
+    <button onclick="toggleModal()" qa-id="btn-close-modal">Cerrar</button>
+  </div>
+
+  <details qa-id="collapsible">
+    <summary qa-id="collapsible-summary">Más información</summary>
+    <p qa-id="collapsible-content">Contenido colapsable</p>
+  </details>
+
+  <a href="/" qa-id="link-home">Inicio</a>
+</body>
+</html>

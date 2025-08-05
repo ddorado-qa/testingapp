@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard</title>
+  <script src="main.js"></script>
+  <script src="chart.min.js"></script>
+</head>
+<body>
+  <h1 qa-id="title-dashboard" data-i18n="dashboard_title">Dashboard de métricas</h1>
+  <canvas id="myChart" width="400" height="200" qa-id="chart-usage"></canvas>
+  <script>
+    const ctx = document.getElementById('myChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Login', 'Perfil', 'Admin', 'Settings'],
+        datasets: [{
+          label: 'Visitas',
+          data: [12, 19, 3, 5],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  </script>
+</body>
+</html>

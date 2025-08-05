@@ -1,0 +1,32 @@
+# Makefile para modo desarrollo interactivo con nodemon/vite
+
+BACKEND_SERVICE=qaapp-backend
+FRONTEND_SERVICE=qaapp-frontend
+
+# Instala dependencias solo si no existen node_modules
+install:
+	docker-compose run --rm $(BACKEND_SERVICE) sh -c "npm install"
+	docker-compose run --rm $(FRONTEND_SERVICE) sh -c "npm install"
+
+# Ejecuta backend con nodemon y frontend en modo dev
+dev: install
+	@echo "🚀 Iniciando entorno de desarrollo..."
+	docker-compose up --build
+
+# Ver logs del desarrollo
+logs:
+	docker-compose logs -f
+
+# Reinicia los contenedores en modo dev
+restart:
+	docker-compose down
+	make dev
+
+# Entra al contenedor backend
+bash:
+	docker exec -it $(BACKEND_SERVICE) sh
+
+# Limpia el entorno
+clean:
+	docker-compose down -v
+	docker system prune -f

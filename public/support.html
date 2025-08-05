@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Soporte</title>
+  <script src="logger.js"></script>
+</head>
+<body>
+  <h1 qa-id="title-support">Soporte</h1>
+  <details qa-id="faq-1">
+    <summary qa-id="faq-1-summary">¿Cómo iniciar sesión?</summary>
+    <p qa-id="faq-1-answer">Dirígete a /login y usa tus credenciales.</p>
+  </details>
+  <details qa-id="faq-2">
+    <summary qa-id="faq-2-summary">¿Cómo reporto un bug?</summary>
+    <p qa-id="faq-2-answer">Contacta a soporte QA vía email.</p>
+  </details>
+  <button onclick="logEvent('faq', 'Revisó soporte')" qa-id="btn-log-support">Log Soporte</button>
+  <a href="/" qa-id="link-home">Inicio</a>
+</body>
+</html>

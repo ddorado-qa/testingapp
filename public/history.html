@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Historial de Logs</title>
+  <script src="logger.js"></script>
+  <script>
+    function loadLogs() {
+      const container = document.getElementById('logs');
+      const logs = JSON.parse(localStorage.getItem('qa_logs') || '[]');
+      container.innerHTML = logs.map(l => `<li>${l.timestamp} - ${l.action} - ${l.detail}</li>`).join('');
+    }
+    window.onload = loadLogs;
+  </script>
+</head>
+<body>
+  <h1 qa-id="title-history">Historial QA Logs</h1>
+  <ul id="logs" qa-id="logs-list"></ul>
+  <button onclick="localStorage.removeItem('qa_logs'); loadLogs()" qa-id="btn-clear-logs">Limpiar Logs</button>
+  <a href="/" qa-id="link-home">Inicio</a>
+</body>
+</html>

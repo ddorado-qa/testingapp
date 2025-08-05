@@ -1,0 +1,11 @@
+{
+  "welcome": "Welcome to the QA App",
+  "login": "Login",
+  "profile": "Profile",
+  "settings": "Settings",
+  "dashboard": "Dashboard",
+  "admin": "Admin",
+  "dashboard_title": "Metrics Dashboard",
+  "admin_panel": "Admin Panel",
+  "admin_only": "Only accessible to administrators."
+}

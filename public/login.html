@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <script src="logger.js"></script>
+  <script>
+    function login(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      localStorage.setItem("user", JSON.stringify({ username, role: "qa" }));
+      logEvent("login", "Usuario inició sesión");
+      location.href = "/profile";
+    }
+  </script>
+</head>
+<body>
+  <h1 qa-id="title-login">Iniciar sesión</h1>
+  <form onsubmit="login(event)" qa-id="form-login">
+    <input id="username" type="text" placeholder="Usuario" qa-id="input-user" required /><br>
+    <input type="password" placeholder="Contraseña" qa-id="input-pass" required /><br>
+    <button type="submit" qa-id="btn-login">Entrar</button>
+  </form>
+  <a href="/" qa-id="link-home">Inicio</a>
+</body>
+</html>

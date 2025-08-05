@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inicio</title>
+  <script src="main.js"></script>
+</head>
+<body>
+  <h1 qa-id="title-home" data-i18n="welcome">Bienvenido a la App QA</h1>
+  <nav>
+    <a href="/login" qa-id="nav-login" data-i18n="login">Login</a> |
+    <a href="/profile" qa-id="nav-profile" data-i18n="profile">Perfil</a> |
+    <a href="/settings" qa-id="nav-settings" data-i18n="settings">Configuración</a> |
+    <a href="/dashboard" qa-id="nav-dashboard" data-i18n="dashboard">Dashboard</a> |
+    <a href="/admin" qa-id="nav-admin" data-i18n="admin">Admin</a>
+  </nav>
+  <button qa-id="home-refresh-btn" onclick="logAndAlert('Refrescando...')">Refrescar</button>
+</body>
+</html>
