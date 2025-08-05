@@ -1,33 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>QA Dashboard</title>
-  <script defer src="app.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .nav a { margin: 0 10px; cursor: pointer; }
-    .hidden { display: none; }
-    table, td, th { border: 1px solid; border-collapse: collapse; padding: 4px; }
-  </style>
-</head>
-<body>
-  <h1>QA Testing Web App</h1>
-  <div class="nav">
-    <a onclick="navigate('users')" qa-id="nav-users">Users</a>
-    <a onclick="navigate('products')" qa-id="nav-products">Products</a>
-    <a onclick="navigate('logs')" qa-id="nav-logs">Logs</a>
-    <a onclick="navigate('dashboard')" qa-id="nav-dashboard">Dashboard</a>
-    <a onclick="logout()" qa-id="nav-logout">Logout</a>
-  </div>
-
-  <hr />
-
-  <div id="users" class="page hidden"></div>
-  <div id="products" class="page hidden"></div>
-  <div id="logs" class="page hidden"></div>
-  <div id="dashboard" class="page hidden">
-    <canvas id="chart" width="400" height="200" qa-id="chart-canvas"></canvas>
-  </div>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>QA App</title>
+    <script type="module" src="/main.js"></script>
+  </head>
+  <body>
+    <h1 qa-id="title">Bienvenido a la QA App</h1>
+    <button qa-id="log-btn">Enviar Log</button>
+    <pre qa-id="log-output"></pre>
+  </body>
 </html>
