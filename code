@@ -1,193 +1,229 @@
 =======================================
-INICIO FICHERO >> ./backend/server.js
+INICIO FICHERO >> ./frontend/src/App.tsx
 =======================================
-// Servidor Express con endpoints extendidos
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const app = express();
-const PORT = 3001;
+// @ts-nocheck
+import { useEffect } from "react";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import Home from "./pages/Home";
+import Users from "./pages/Users";
+import Products from "./pages/Products";
+import Logs from "./pages/Logs";
+import Settings from "./pages/Settings";
+import Support from "./pages/Support";
+import Rating from "./pages/Rating";
+import NotFound from "./pages/NotFound";
+import Navbar from "./components/Navbar";
 
-app.use(cors());
-app.use(bodyParser.json());
-
-let products = [
-  { id: 1, name: 'Keyboard', price: 50 },
-  { id: 2, name: 'Mouse', price: 30 },
-];
-let logs = [
-  { id: 1, type: 'info', message: 'App started', timestamp: new Date().toISOString() }
-];
-
-// --- PRODUCTS ---
-app.get('/api/products', (req, res) => res.json(products));
-app.post('/api/products', (req, res) => {
-  const product = { id: Date.now(), ...req.body };
-  products.push(product);
-  logs.push({ id: Date.now(), type: 'create', message: `Created product ${product.name}`, timestamp: new Date().toISOString() });
-  res.json(product);
-});
-app.put('/api/products/:id', (req, res) => {
-  const idx = products.findIndex(p => p.id == req.params.id);
-  products[idx] = { ...products[idx], ...req.body };
-  logs.push({ id: Date.now(), type: 'update', message: `Updated product ${products[idx].name}`, timestamp: new Date().toISOString() });
-  res.json(products[idx]);
-});
-app.delete('/api/products/:id', (req, res) => {
-  products = products.filter(p => p.id != req.params.id);
-  logs.push({ id: Date.now(), type: 'delete', message: `Deleted product ${req.params.id}`, timestamp: new Date().toISOString() });
-  res.json({ ok: true });
-});
-
-// --- LOGS ---
-app.get('/api/logs', (req, res) => {
-  const { type } = req.query;
-  let filtered = logs;
-  if (type) filtered = filtered.filter(log => log.type === type);
-  res.json(filtered);
-});
-
-app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
-=======================================
-FIN FICHERO >> ./backend/server.js
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/ProductsPage.jsx
-=======================================
-import React, { useEffect, useState } from 'react';
-
-export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [editing, setEditing] = useState({});
-  const [newProduct, setNewProduct] = useState({ name: '', price: '' });
-
+function App() {
   useEffect(() => {
-    fetch('/api/products').then(r => r.json()).then(setProducts);
+    const timeout = setTimeout(() => {
+      alert("Sesión expirada por inactividad");
+      window.location.href = "/";
+    }, 1000 * 60 * 10); // 10 minutos
+
+    return () => clearTimeout(timeout);
   }, []);
 
-  const saveEdit = (id) => {
-    fetch(`/api/products/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editing[id])
-    }).then(() => {
-      setEditing(p => {
-        const { [id]: _, ...rest } = p;
-        return rest;
-      });
-      return fetch('/api/products').then(r => r.json()).then(setProducts);
-    });
-  };
-
-  const deleteProduct = (id) => {
-    fetch(`/api/products/${id}`, { method: 'DELETE' })
-      .then(() => setProducts(p => p.filter(prod => prod.id !== id)));
-  };
-
-  const addProduct = () => {
-    fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProduct)
-    }).then(() => {
-      setNewProduct({ name: '', price: '' });
-      return fetch('/api/products').then(r => r.json()).then(setProducts);
-    });
-  };
-
-  const exportCSV = () => {
-    const csv = ['id,name,price', ...products.map(p => `${p.id},${p.name},${p.price}`)].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'products.csv';
-    a.click();
-  };
-
   return (
-    <div>
-      <h2>Products</h2>
-      <button qa-id="btn-export-csv" onClick={exportCSV}>Export CSV</button>
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Name</th><th>Price</th><th>Actions</th></tr>
-        </thead>
-        <tbody>
-          {products.map(prod => (
-            <tr key={prod.id}>
-              <td>{prod.id}</td>
-              <td>
-                <input
-                  qa-id={`edit-name-${prod.id}`}
-                  value={editing[prod.id]?.name ?? prod.name}
-                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, name: e.target.value } })}
-                />
-              </td>
-              <td>
-                <input
-                  qa-id={`edit-price-${prod.id}`}
-                  value={editing[prod.id]?.price ?? prod.price}
-                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, price: e.target.value } })}
-                />
-              </td>
-              <td>
-                <button qa-id={`btn-save-${prod.id}`} onClick={() => saveEdit(prod.id)}>Save</button>
-                <button qa-id={`btn-delete-${prod.id}`} onClick={() => deleteProduct(prod.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-          <tr>
-            <td>New</td>
-            <td><input qa-id="new-name" value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} /></td>
-            <td><input qa-id="new-price" value={newProduct.price} onChange={e => setNewProduct(p => ({ ...p, price: e.target.value }))} /></td>
-            <td><button qa-id="btn-add-product" onClick={addProduct}>Add Product</button></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/logs" element={<Logs />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/rating" element={<Rating />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
 }
+
+export default App;
 =======================================
-FIN FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+FIN FICHERO >> ./frontend/src/App.tsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/pages/LogsPage.jsx
+INICIO FICHERO >> ./frontend/src/pages/Settings.tsx
 =======================================
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from "react";
 
-export default function LogsPage() {
-  const [logs, setLogs] = useState([]);
-  const [type, setType] = useState('');
+function Settings() {
+  const [autoTest, setAutoTest] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/logs${type ? `?type=${type}` : ''}`).then(r => r.json()).then(setLogs);
-  }, [type]);
+    const saved = localStorage.getItem("qa-auto") === "true";
+    setAutoTest(saved);
+  }, []);
+
+  const toggle = () => {
+    localStorage.setItem("qa-auto", (!autoTest).toString());
+    setAutoTest(!autoTest);
+  };
 
   return (
-    <div>
-      <h2>Logs</h2>
-      <label>
-        Filter by type:
-        <select qa-id="select-log-type" value={type} onChange={e => setType(e.target.value)}>
-          <option value="">All</option>
-          <option value="create">Create</option>
-          <option value="update">Update</option>
-          <option value="delete">Delete</option>
-        </select>
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">⚙️ Configuración QA</h2>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={autoTest}
+          onChange={toggle}
+          data-qa-id="toggle-autotest"
+        />
+        Activar ejecución automática de tests tras cada cambio
       </label>
-      <ul>
-        {logs.map(log => (
-          <li key={log.id} qa-id={`log-${log.id}`}>
-            [{log.type.toUpperCase()}] {log.message} ({new Date(log.timestamp).toLocaleString()})
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
+
+export default Settings;
 =======================================
-FIN FICHERO >> ./frontend/src/pages/LogsPage.jsx
+FIN FICHERO >> ./frontend/src/pages/Settings.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Support.tsx
+=======================================
+import { useState } from "react";
+
+function Support() {
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert(`Soporte enviado desde ${email}: ${msg}`);
+    setEmail("");
+    setMsg("");
+  };
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">🛠 Soporte Técnico</h2>
+      <form onSubmit={handleSubmit} className="space-y-4" data-qa-id="form-support">
+        <input
+          type="email"
+          placeholder="Tu correo"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border p-2 w-full"
+          required
+          data-qa-id="input-email"
+        />
+        <textarea
+          placeholder="¿En qué podemos ayudarte?"
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          className="border p-2 w-full"
+          required
+          data-qa-id="input-message"
+        />
+        <button className="bg-blue-600 text-white px-4 py-2 rounded" type="submit" data-qa-id="submit-support">
+          Enviar
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default Support;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Support.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Rating.tsx
+=======================================
+import { useState } from "react";
+
+function Rating() {
+  const [score, setScore] = useState(0);
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">⭐ Valora nuestra plataforma</h2>
+      <div className="flex space-x-2 text-2xl" data-qa-id="rating-stars">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span
+            key={n}
+            onClick={() => setScore(n)}
+            style={{ cursor: "pointer", color: n <= score ? "gold" : "gray" }}
+            data-qa-id={`star-${n}`}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+      {score > 0 && (
+        <p className="mt-4 text-green-600 font-semibold" data-qa-id="rating-msg">
+          ¡Gracias por darnos {score} estrella{score > 1 ? "s" : ""}!
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default Rating;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Rating.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/NotFound.tsx
+=======================================
+function NotFound() {
+  return (
+    <div className="p-6 text-center">
+      <h1 className="text-3xl font-bold mb-2">🚫 Página no encontrada</h1>
+      <p>La ruta que buscas no existe.</p>
+    </div>
+  );
+}
+
+export default NotFound;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/NotFound.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Navbar.tsx
+=======================================
+import { NavLink } from "react-router-dom";
+
+function Navbar() {
+  const links = [
+    { to: "/", label: "🏠 Home" },
+    { to: "/users", label: "👥 Usuarios" },
+    { to: "/products", label: "📦 Productos" },
+    { to: "/logs", label: "🧾 Logs" },
+    { to: "/settings", label: "⚙️ Settings" },
+    { to: "/support", label: "🛠 Soporte" },
+    { to: "/rating", label: "⭐ Rating" },
+  ];
+
+  return (
+    <nav className="bg-gray-800 text-white p-4 flex gap-4">
+      {links.map((link) => (
+        <NavLink
+          key={link.to}
+          to={link.to}
+          className={({ isActive }) =>
+            isActive ? "underline font-bold" : "hover:underline"
+          }
+          data-qa-id={`nav-${link.to.replace("/", "") || "home"}`}
+        >
+          {link.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+export default Navbar;
+=======================================
+FIN FICHERO >> ./frontend/src/components/Navbar.tsx
 =======================================
