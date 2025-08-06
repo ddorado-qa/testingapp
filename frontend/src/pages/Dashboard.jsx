@@ -1,16 +1,9 @@
-// Página Dashboard simple con resumen y mensajes
-import React from 'react'
-
+// Página principal con mensaje de bienvenida
 export default function Dashboard() {
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
-      <p>Resumen rápido del estado del sistema.</p>
-      <ul className="list-disc ml-6 mt-2">
-        <li>Usuarios totales: 124</li>
-        <li>Logs recientes: 58</li>
-        <li>Productos activos: 32</li>
-      </ul>
+    <div className="p-4">
+      <h1 className="text-3xl font-bold mb-4">Bienvenido a la QA App</h1>
+      <p className="text-lg">Selecciona una sección del menú para comenzar.</p>
     </div>
   )
 }
