@@ -1,229 +1,541 @@
 =======================================
-INICIO FICHERO >> ./frontend/src/App.tsx
+INICIO FICHERO >> ./frontend/package.json
 =======================================
-// @ts-nocheck
-import { useEffect } from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
-import Home from "./pages/Home";
-import Users from "./pages/Users";
-import Products from "./pages/Products";
-import Logs from "./pages/Logs";
-import Settings from "./pages/Settings";
-import Support from "./pages/Support";
-import Rating from "./pages/Rating";
-import NotFound from "./pages/NotFound";
-import Navbar from "./components/Navbar";
+// Paquete actualizado con dependencias necesarias para React, Vite, Tailwind y Chart.js
+{
+  "name": "qaapp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.12.1",
+    "chart.js": "^4.3.0",
+    "react-chartjs-2": "^5.2.0"
+  },
+  "devDependencies": {
+    "vite": "^4.3.9",
+    "tailwindcss": "^3.3.2",
+    "postcss": "^8.4.24",
+    "autoprefixer": "^10.4.14"
+  }
+}
+=======================================
+FIN FICHERO >> ./frontend/package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/vite.config.js
+=======================================
+// Configuración básica Vite con React y --host para acceder localmente desde otras IPs si se quiere
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: true
+  }
+})
+=======================================
+FIN FICHERO >> ./frontend/vite.config.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/tailwind.config.cjs
+=======================================
+// Config TailwindCSS para procesar ./src y ./index.html
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,jsx,ts,tsx}"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+=======================================
+FIN FICHERO >> ./frontend/tailwind.config.cjs
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/postcss.config.cjs
+=======================================
+// PostCSS configuración para Tailwind
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+=======================================
+FIN FICHERO >> ./frontend/postcss.config.cjs
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/index.html
+=======================================
+// HTML base que carga React y el root div
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA App - Multi Página</title>
+    <script type="module" src="/src/main.jsx"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <div id="root"></div>
+  </body>
+</html>
+=======================================
+FIN FICHERO >> ./frontend/index.html
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/main.jsx
+=======================================
+// Punto de entrada React, renderiza <App/>
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
+=======================================
+FIN FICHERO >> ./frontend/src/main.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/index.css
+=======================================
+// Tailwind base styles
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+=======================================
+FIN FICHERO >> ./frontend/src/index.css
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/App.jsx
+=======================================
+// App principal con Router, Navegación y Layout base
+import React from 'react'
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+
+import Home from './pages/Home.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import Usuarios from './pages/Usuarios.jsx'
+import Logs from './pages/Logs.jsx'
+import Productos from './pages/Productos.jsx'
+import Settings from './pages/Settings.jsx'
+import NotFound from './pages/NotFound.jsx'
 
 function App() {
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      alert("Sesión expirada por inactividad");
-      window.location.href = "/";
-    }, 1000 * 60 * 10); // 10 minutos
-
-    return () => clearTimeout(timeout);
-  }, []);
-
   return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/logs" element={<Logs />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/support" element={<Support />} />
-        <Route path="/rating" element={<Rating />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
-  );
-}
+    <BrowserRouter>
+      <div className="min-h-screen flex flex-col">
+        <header className="bg-blue-700 text-white p-4">
+          <nav className="container mx-auto flex space-x-4">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                isActive ? "underline font-bold" : "hover:underline"
+              }
+            >
+              Home
+            </NavLink>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                isActive ? "underline font-bold" : "hover:underline"
+              }
+            >
+              Dashboard
+            </NavLink>
+            <NavLink
+              to="/usuarios"
+              className={({ isActive }) =>
+                isActive ? "underline font-bold" : "hover:underline"
+              }
+            >
+              Usuarios
+            </NavLink>
+            <NavLink
+              to="/logs"
+              className={({ isActive }) =>
+                isActive ? "underline font-bold" : "hover:underline"
+              }
+            >
+              Logs
+            </NavLink>
+            <NavLink
+              to="/productos"
+              className={({ isActive }) =>
+                isActive ? "underline font-bold" : "hover:underline"
+              }
+            >
+              Productos
+            </NavLink>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                isActive ? "underline font-bold" : "hover:underline"
+              }
+            >
+              Settings
+            </NavLink>
+          </nav>
+        </header>
 
-export default App;
-=======================================
-FIN FICHERO >> ./frontend/src/App.tsx
-=======================================
+        <main className="flex-grow container mx-auto p-4">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/usuarios" element={<Usuarios />} />
+            <Route path="/logs" element={<Logs />} />
+            <Route path="/productos" element={<Productos />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
 
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/Settings.tsx
-=======================================
-import { useState, useEffect } from "react";
-
-function Settings() {
-  const [autoTest, setAutoTest] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("qa-auto") === "true";
-    setAutoTest(saved);
-  }, []);
-
-  const toggle = () => {
-    localStorage.setItem("qa-auto", (!autoTest).toString());
-    setAutoTest(!autoTest);
-  };
-
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">⚙️ Configuración QA</h2>
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={autoTest}
-          onChange={toggle}
-          data-qa-id="toggle-autotest"
-        />
-        Activar ejecución automática de tests tras cada cambio
-      </label>
-    </div>
-  );
-}
-
-export default Settings;
-=======================================
-FIN FICHERO >> ./frontend/src/pages/Settings.tsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/Support.tsx
-=======================================
-import { useState } from "react";
-
-function Support() {
-  const [email, setEmail] = useState("");
-  const [msg, setMsg] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert(`Soporte enviado desde ${email}: ${msg}`);
-    setEmail("");
-    setMsg("");
-  };
-
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">🛠 Soporte Técnico</h2>
-      <form onSubmit={handleSubmit} className="space-y-4" data-qa-id="form-support">
-        <input
-          type="email"
-          placeholder="Tu correo"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border p-2 w-full"
-          required
-          data-qa-id="input-email"
-        />
-        <textarea
-          placeholder="¿En qué podemos ayudarte?"
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          className="border p-2 w-full"
-          required
-          data-qa-id="input-message"
-        />
-        <button className="bg-blue-600 text-white px-4 py-2 rounded" type="submit" data-qa-id="submit-support">
-          Enviar
-        </button>
-      </form>
-    </div>
-  );
-}
-
-export default Support;
-=======================================
-FIN FICHERO >> ./frontend/src/pages/Support.tsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/Rating.tsx
-=======================================
-import { useState } from "react";
-
-function Rating() {
-  const [score, setScore] = useState(0);
-
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">⭐ Valora nuestra plataforma</h2>
-      <div className="flex space-x-2 text-2xl" data-qa-id="rating-stars">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <span
-            key={n}
-            onClick={() => setScore(n)}
-            style={{ cursor: "pointer", color: n <= score ? "gold" : "gray" }}
-            data-qa-id={`star-${n}`}
-          >
-            ★
-          </span>
-        ))}
+        <footer className="bg-gray-100 text-center p-4 text-sm text-gray-600">
+          QA App © 2025 - Módulos & Flows
+        </footer>
       </div>
-      {score > 0 && (
-        <p className="mt-4 text-green-600 font-semibold" data-qa-id="rating-msg">
-          ¡Gracias por darnos {score} estrella{score > 1 ? "s" : ""}!
-        </p>
-      )}
-    </div>
-  );
+    </BrowserRouter>
+  )
 }
 
-export default Rating;
+export default App
 =======================================
-FIN FICHERO >> ./frontend/src/pages/Rating.tsx
+FIN FICHERO >> ./frontend/src/App.jsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/pages/NotFound.tsx
+INICIO FICHERO >> ./frontend/src/pages/Home.jsx
 =======================================
-function NotFound() {
-  return (
-    <div className="p-6 text-center">
-      <h1 className="text-3xl font-bold mb-2">🚫 Página no encontrada</h1>
-      <p>La ruta que buscas no existe.</p>
-    </div>
-  );
+// Página Home con gráfico de ejemplo usando react-chartjs-2 y Chart.js
+import React from 'react'
+import { Line } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+)
+
+const data = {
+  labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+  datasets: [
+    {
+      label: 'Usuarios nuevos',
+      data: [12, 19, 3, 5, 2, 3],
+      fill: false,
+      borderColor: 'rgb(37, 99, 235)', // azul
+      backgroundColor: 'rgba(37, 99, 235, 0.5)',
+      tension: 0.3,
+    }
+  ]
 }
 
-export default NotFound;
+const options = {
+  responsive: true,
+  plugins: {
+    legend: { position: 'top' },
+    title: {
+      display: true,
+      text: 'Crecimiento de Usuarios por Mes',
+    },
+  },
+}
+
+export default function Home() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Bienvenido a QA App</h1>
+      <Line options={options} data={data} />
+    </div>
+  )
+}
 =======================================
-FIN FICHERO >> ./frontend/src/pages/NotFound.tsx
+FIN FICHERO >> ./frontend/src/pages/Home.jsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/components/Navbar.tsx
+INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
 =======================================
-import { NavLink } from "react-router-dom";
+// Página Dashboard simple con resumen y mensajes
+import React from 'react'
 
-function Navbar() {
-  const links = [
-    { to: "/", label: "🏠 Home" },
-    { to: "/users", label: "👥 Usuarios" },
-    { to: "/products", label: "📦 Productos" },
-    { to: "/logs", label: "🧾 Logs" },
-    { to: "/settings", label: "⚙️ Settings" },
-    { to: "/support", label: "🛠 Soporte" },
-    { to: "/rating", label: "⭐ Rating" },
-  ];
+export default function Dashboard() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
+      <p>Resumen rápido del estado del sistema.</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Usuarios totales: 124</li>
+        <li>Logs recientes: 58</li>
+        <li>Productos activos: 32</li>
+      </ul>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Usuarios.jsx
+=======================================
+// Página Usuarios con tabla básica sin conexión a backend (mock)
+import React from 'react'
+
+const usuariosMock = [
+  { id: 1, nombre: 'Maria', email: 'maria@example.com' },
+  { id: 2, nombre: 'Juan', email: 'juan@example.com' },
+  { id: 3, nombre: 'Ana', email: 'ana@example.com' },
+]
+
+export default function Usuarios() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Usuarios</h1>
+      <table className="w-full border-collapse border border-gray-300">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border border-gray-300 p-2 text-left">ID</th>
+            <th className="border border-gray-300 p-2 text-left">Nombre</th>
+            <th className="border border-gray-300 p-2 text-left">Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {usuariosMock.map((u) => (
+            <tr key={u.id} className="hover:bg-gray-100">
+              <td className="border border-gray-300 p-2">{u.id}</td>
+              <td className="border border-gray-300 p-2">{u.nombre}</td>
+              <td className="border border-gray-300 p-2">{u.email}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Usuarios.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Logs.jsx
+=======================================
+// Página Logs con tabla y filtro simple de búsqueda
+import React, { useState } from 'react'
+
+const logsMock = [
+  { id: 1, fecha: '2025-08-01', mensaje: 'Usuario Maria inició sesión' },
+  { id: 2, fecha: '2025-08-02', mensaje: 'Error en módulo Productos' },
+  { id: 3, fecha: '2025-08-03', mensaje: 'Usuario Juan cerró sesión' },
+  { id: 4, fecha: '2025-08-04', mensaje: 'Actualización de producto 23' },
+]
+
+export default function Logs() {
+  const [filtro, setFiltro] = useState('')
+
+  const logsFiltrados = logsMock.filter((log) =>
+    log.mensaje.toLowerCase().includes(filtro.toLowerCase())
+  )
 
   return (
-    <nav className="bg-gray-800 text-white p-4 flex gap-4">
-      {links.map((link) => (
-        <NavLink
-          key={link.to}
-          to={link.to}
-          className={({ isActive }) =>
-            isActive ? "underline font-bold" : "hover:underline"
-          }
-          data-qa-id={`nav-${link.to.replace("/", "") || "home"}`}
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Logs</h1>
+      <input
+        type="text"
+        placeholder="Buscar en logs..."
+        className="border p-2 mb-4 w-full max-w-sm"
+        value={filtro}
+        onChange={(e) => setFiltro(e.target.value)}
+      />
+      <table className="w-full border-collapse border border-gray-300">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border border-gray-300 p-2 text-left">ID</th>
+            <th className="border border-gray-300 p-2 text-left">Fecha</th>
+            <th className="border border-gray-300 p-2 text-left">Mensaje</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logsFiltrados.map((log) => (
+            <tr key={log.id} className="hover:bg-gray-100">
+              <td className="border border-gray-300 p-2">{log.id}</td>
+              <td className="border border-gray-300 p-2">{log.fecha}</td>
+              <td className="border border-gray-300 p-2">{log.mensaje}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Logs.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Productos.jsx
+=======================================
+// Página Productos con CRUD simple sin backend, usando estado local
+import React, { useState } from 'react'
+
+const productosIniciales = [
+  { id: 1, nombre: 'Producto A', precio: 10.5 },
+  { id: 2, nombre: 'Producto B', precio: 20.0 },
+]
+
+export default function Productos() {
+  const [productos, setProductos] = useState(productosIniciales)
+  const [nuevoNombre, setNuevoNombre] = useState('')
+  const [nuevoPrecio, setNuevoPrecio] = useState('')
+
+  function agregarProducto() {
+    if (!nuevoNombre.trim() || !nuevoPrecio) return
+    const idNuevo = productos.length ? productos[productos.length - 1].id + 1 : 1
+    setProductos([...productos, { id: idNuevo, nombre: nuevoNombre, precio: parseFloat(nuevoPrecio) }])
+    setNuevoNombre('')
+    setNuevoPrecio('')
+  }
+
+  function eliminarProducto(id) {
+    setProductos(productos.filter(p => p.id !== id))
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Productos</h1>
+      <div className="mb-4 flex space-x-2">
+        <input
+          type="text"
+          placeholder="Nombre"
+          className="border p-2 flex-grow"
+          value={nuevoNombre}
+          onChange={e => setNuevoNombre(e.target.value)}
+        />
+        <input
+          type="number"
+          step="0.01"
+          placeholder="Precio"
+          className="border p-2 w-24"
+          value={nuevoPrecio}
+          onChange={e => setNuevoPrecio(e.target.value)}
+        />
+        <button
+          onClick={agregarProducto}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          {link.label}
-        </NavLink>
-      ))}
-    </nav>
-  );
-}
+          Agregar
+        </button>
+      </div>
 
-export default Navbar;
+      <table className="w-full border-collapse border border-gray-300">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border border-gray-300 p-2 text-left">ID</th>
+            <th className="border border-gray-300 p-2 text-left">Nombre</th>
+            <th className="border border-gray-300 p-2 text-left">Precio</th>
+            <th className="border border-gray-300 p-2 text-left">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map(p => (
+            <tr key={p.id} className="hover:bg-gray-100">
+              <td className="border border-gray-300 p-2">{p.id}</td>
+              <td className="border border-gray-300 p-2">{p.nombre}</td>
+              <td className="border border-gray-300 p-2">${p.precio.toFixed(2)}</td>
+              <td className="border border-gray-300 p-2">
+                <button
+                  onClick={() => eliminarProducto(p.id)}
+                  className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                >
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 =======================================
-FIN FICHERO >> ./frontend/src/components/Navbar.tsx
+FIN FICHERO >> ./frontend/src/pages/Productos.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Settings.jsx
+=======================================
+// Página Settings básica con opciones ficticias
+import React from 'react'
+
+export default function Settings() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Configuración</h1>
+      <p>Aquí puedes configurar opciones de la aplicación.</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Notificaciones: Activadas</li>
+        <li>Modo oscuro: Desactivado</li>
+        <li>Idioma: Español</li>
+      </ul>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Settings.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/NotFound.jsx
+=======================================
+// Página 404 simple
+import React from 'react'
+import { Link } from 'react-router-dom'
+
+export default function NotFound() {
+  return (
+    <div className="text-center mt-20">
+      <h1 className="text-6xl font-bold mb-4">404</h1>
+      <p className="mb-4">Página no encontrada.</p>
+      <Link to="/" className="text-blue-600 hover:underline">Volver al inicio</Link>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/NotFound.jsx
 =======================================

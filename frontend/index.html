@@ -2,27 +2,11 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>QA App</title>
-    <script type="module" src="/main.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA App - Multi Página</title>
+    <script type="module" src="/src/main.jsx"></script>
   </head>
-  <body>
-    <h1 id="title"></h1>
-
-    <div>
-      <label for="lang-select">🌐 Idioma:</label>
-      <select id="lang-select">
-        <option value="es">Español</option>
-        <option value="en">English</option>
-      </select>
-    </div>
-
-    <div>
-      <label for="log-msg">📝 Log:</label>
-      <input id="log-msg" />
-      <button id="send-log">Enviar</button>
-    </div>
-
-    <h2>📊 Logs Dashboard</h2>
-    <canvas id="chart" width="600" height="300"></canvas>
+  <body class="bg-gray-50 text-gray-800">
+    <div id="root"></div>
   </body>
 </html>
