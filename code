@@ -1,207 +1,193 @@
 =======================================
-INICIO FICHERO >> ./frontend/src/routes/index.tsx
-=======================================
-// Página de navegación principal con layout
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import Dashboard from './Dashboard'
-import Users from './Users'
-import Products from './Products'
-import Logs from './Logs'
-import Settings from './Settings'
-import Support from './Support'
-import Rating from './Rating'
-import Login from './Login'
-import NotFound from './NotFound'
-import Layout from '../components/Layout'
-
-const AppRoutes = () => (
-  <Router>
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/logs" element={<Logs />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/support" element={<Support />} />
-        <Route path="/rating" element={<Rating />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  </Router>
-)
-
-export default AppRoutes
-=======================================
-FIN FICHERO >> ./frontend/src/routes/index.tsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/src/components/Layout.tsx
-=======================================
-// Layout con menú lateral y navegación
-import { Link, Outlet, useLocation } from 'react-router-dom'
-import './Layout.css'
-
-const menu = [
-  { path: '/dashboard', label: 'Dashboard' },
-  { path: '/users', label: 'Users' },
-  { path: '/products', label: 'Products' },
-  { path: '/logs', label: 'Logs' },
-  { path: '/settings', label: 'Settings' },
-  { path: '/support', label: 'Support' },
-  { path: '/rating', label: 'Rating' },
-]
-
-export default function Layout() {
-  const location = useLocation()
-  return (
-    <div className="layout">
-      <aside className="sidebar">
-        <h2>QA App</h2>
-        <nav>
-          <ul>
-            {menu.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={location.pathname === item.path ? 'active' : ''}
-                  data-qa-id={`nav-${item.label.toLowerCase()}`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
-      <main className="content">
-        <Outlet />
-      </main>
-    </div>
-  )
-}
-=======================================
-FIN FICHERO >> ./frontend/src/components/Layout.tsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/src/routes/Users.tsx
-=======================================
-// Página de usuarios (CRUD completo)
-import { useState, useEffect } from 'react'
-
-interface User {
-  id: number
-  name: string
-  email: string
-}
-
-export default function Users() {
-  const [users, setUsers] = useState<User[]>([])
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-
-  useEffect(() => {
-    fetch('/api/users')
-      .then((res) => res.json())
-      .then(setUsers)
-  }, [])
-
-  const addUser = () => {
-    fetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email }),
-    })
-      .then((res) => res.json())
-      .then((newUser) => setUsers([...users, newUser]))
-  }
-
-  const deleteUser = (id: number) => {
-    fetch(`/api/users/${id}`, { method: 'DELETE' }).then(() =>
-      setUsers(users.filter((u) => u.id !== id))
-    )
-  }
-
-  return (
-    <div>
-      <h1 data-qa-id="title-users">Usuarios</h1>
-      <input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <button onClick={addUser} data-qa-id="btn-add-user">Añadir</button>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>
-            {user.name} ({user.email}){' '}
-            <button onClick={() => deleteUser(user.id)} data-qa-id={`btn-del-user-${user.id}`}>
-              Eliminar
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-=======================================
-FIN FICHERO >> ./frontend/src/routes/Users.tsx
-=======================================
-
-=======================================
 INICIO FICHERO >> ./backend/server.js
 =======================================
-const express = require('express')
-const cors = require('cors')
-const bodyParser = require('body-parser')
-const app = express()
-const PORT = 3001
+// Servidor Express con endpoints extendidos
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const app = express();
+const PORT = 3001;
 
-app.use(cors())
-app.use(bodyParser.json())
+app.use(cors());
+app.use(bodyParser.json());
 
-let users = [{ id: 1, name: 'Juan', email: 'juan@test.com' }]
+let products = [
+  { id: 1, name: 'Keyboard', price: 50 },
+  { id: 2, name: 'Mouse', price: 30 },
+];
+let logs = [
+  { id: 1, type: 'info', message: 'App started', timestamp: new Date().toISOString() }
+];
 
-app.get('/api/users', (req, res) => {
-  res.json(users)
-})
+// --- PRODUCTS ---
+app.get('/api/products', (req, res) => res.json(products));
+app.post('/api/products', (req, res) => {
+  const product = { id: Date.now(), ...req.body };
+  products.push(product);
+  logs.push({ id: Date.now(), type: 'create', message: `Created product ${product.name}`, timestamp: new Date().toISOString() });
+  res.json(product);
+});
+app.put('/api/products/:id', (req, res) => {
+  const idx = products.findIndex(p => p.id == req.params.id);
+  products[idx] = { ...products[idx], ...req.body };
+  logs.push({ id: Date.now(), type: 'update', message: `Updated product ${products[idx].name}`, timestamp: new Date().toISOString() });
+  res.json(products[idx]);
+});
+app.delete('/api/products/:id', (req, res) => {
+  products = products.filter(p => p.id != req.params.id);
+  logs.push({ id: Date.now(), type: 'delete', message: `Deleted product ${req.params.id}`, timestamp: new Date().toISOString() });
+  res.json({ ok: true });
+});
 
-app.post('/api/users', (req, res) => {
-  const newUser = { id: Date.now(), ...req.body }
-  users.push(newUser)
-  res.json(newUser)
-})
+// --- LOGS ---
+app.get('/api/logs', (req, res) => {
+  const { type } = req.query;
+  let filtered = logs;
+  if (type) filtered = filtered.filter(log => log.type === type);
+  res.json(filtered);
+});
 
-app.delete('/api/users/:id', (req, res) => {
-  users = users.filter((u) => u.id != req.params.id)
-  res.sendStatus(200)
-})
-
-app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
+app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
 =======================================
 FIN FICHERO >> ./backend/server.js
 =======================================
 
 =======================================
-INICIO FICHERO >> ./docker-compose.yml
+INICIO FICHERO >> ./frontend/src/pages/ProductsPage.jsx
 =======================================
-version: '3.9'
-services:
-  backend:
-    build: ./backend
-    ports:
-      - '3001:3001'
-    volumes:
-      - ./backend:/app
-  frontend:
-    build: ./frontend
-    ports:
-      - '5173:5173'
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev
+import React, { useEffect, useState } from 'react';
+
+export default function ProductsPage() {
+  const [products, setProducts] = useState([]);
+  const [editing, setEditing] = useState({});
+  const [newProduct, setNewProduct] = useState({ name: '', price: '' });
+
+  useEffect(() => {
+    fetch('/api/products').then(r => r.json()).then(setProducts);
+  }, []);
+
+  const saveEdit = (id) => {
+    fetch(`/api/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editing[id])
+    }).then(() => {
+      setEditing(p => {
+        const { [id]: _, ...rest } = p;
+        return rest;
+      });
+      return fetch('/api/products').then(r => r.json()).then(setProducts);
+    });
+  };
+
+  const deleteProduct = (id) => {
+    fetch(`/api/products/${id}`, { method: 'DELETE' })
+      .then(() => setProducts(p => p.filter(prod => prod.id !== id)));
+  };
+
+  const addProduct = () => {
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newProduct)
+    }).then(() => {
+      setNewProduct({ name: '', price: '' });
+      return fetch('/api/products').then(r => r.json()).then(setProducts);
+    });
+  };
+
+  const exportCSV = () => {
+    const csv = ['id,name,price', ...products.map(p => `${p.id},${p.name},${p.price}`)].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'products.csv';
+    a.click();
+  };
+
+  return (
+    <div>
+      <h2>Products</h2>
+      <button qa-id="btn-export-csv" onClick={exportCSV}>Export CSV</button>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Price</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {products.map(prod => (
+            <tr key={prod.id}>
+              <td>{prod.id}</td>
+              <td>
+                <input
+                  qa-id={`edit-name-${prod.id}`}
+                  value={editing[prod.id]?.name ?? prod.name}
+                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, name: e.target.value } })}
+                />
+              </td>
+              <td>
+                <input
+                  qa-id={`edit-price-${prod.id}`}
+                  value={editing[prod.id]?.price ?? prod.price}
+                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, price: e.target.value } })}
+                />
+              </td>
+              <td>
+                <button qa-id={`btn-save-${prod.id}`} onClick={() => saveEdit(prod.id)}>Save</button>
+                <button qa-id={`btn-delete-${prod.id}`} onClick={() => deleteProduct(prod.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+          <tr>
+            <td>New</td>
+            <td><input qa-id="new-name" value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} /></td>
+            <td><input qa-id="new-price" value={newProduct.price} onChange={e => setNewProduct(p => ({ ...p, price: e.target.value }))} /></td>
+            <td><button qa-id="btn-add-product" onClick={addProduct}>Add Product</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
 =======================================
-FIN FICHERO >> ./docker-compose.yml
+FIN FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/LogsPage.jsx
+=======================================
+import React, { useEffect, useState } from 'react';
+
+export default function LogsPage() {
+  const [logs, setLogs] = useState([]);
+  const [type, setType] = useState('');
+
+  useEffect(() => {
+    fetch(`/api/logs${type ? `?type=${type}` : ''}`).then(r => r.json()).then(setLogs);
+  }, [type]);
+
+  return (
+    <div>
+      <h2>Logs</h2>
+      <label>
+        Filter by type:
+        <select qa-id="select-log-type" value={type} onChange={e => setType(e.target.value)}>
+          <option value="">All</option>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+        </select>
+      </label>
+      <ul>
+        {logs.map(log => (
+          <li key={log.id} qa-id={`log-${log.id}`}>
+            [{log.type.toUpperCase()}] {log.message} ({new Date(log.timestamp).toLocaleString()})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/LogsPage.jsx
 =======================================
