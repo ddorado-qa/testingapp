@@ -1,250 +1,207 @@
 =======================================
-INICIO FICHERO >> ./backend/server.js
+INICIO FICHERO >> ./frontend/src/routes/index.tsx
 =======================================
-// Servidor Express con persistencia de logs, CORS y simulación de sesión
-const express = require("express");
-const fs = require("fs");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const path = require("path");
+// Página de navegación principal con layout
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Dashboard from './Dashboard'
+import Users from './Users'
+import Products from './Products'
+import Logs from './Logs'
+import Settings from './Settings'
+import Support from './Support'
+import Rating from './Rating'
+import Login from './Login'
+import NotFound from './NotFound'
+import Layout from '../components/Layout'
 
-const app = express();
-const PORT = 3000;
+const AppRoutes = () => (
+  <Router>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route element={<Layout />}>
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/logs" element={<Logs />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/rating" element={<Rating />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </Router>
+)
 
-const LOG_FILE = path.join(__dirname, "data", "logs.json");
+export default AppRoutes
+=======================================
+FIN FICHERO >> ./frontend/src/routes/index.tsx
+=======================================
 
-app.use(cors());
-app.use(bodyParser.json());
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Layout.tsx
+=======================================
+// Layout con menú lateral y navegación
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import './Layout.css'
 
-if (!fs.existsSync(LOG_FILE)) {
-  fs.writeFileSync(LOG_FILE, "[]");
+const menu = [
+  { path: '/dashboard', label: 'Dashboard' },
+  { path: '/users', label: 'Users' },
+  { path: '/products', label: 'Products' },
+  { path: '/logs', label: 'Logs' },
+  { path: '/settings', label: 'Settings' },
+  { path: '/support', label: 'Support' },
+  { path: '/rating', label: 'Rating' },
+]
+
+export default function Layout() {
+  const location = useLocation()
+  return (
+    <div className="layout">
+      <aside className="sidebar">
+        <h2>QA App</h2>
+        <nav>
+          <ul>
+            {menu.map((item) => (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  className={location.pathname === item.path ? 'active' : ''}
+                  data-qa-id={`nav-${item.label.toLowerCase()}`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+      <main className="content">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Layout.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/routes/Users.tsx
+=======================================
+// Página de usuarios (CRUD completo)
+import { useState, useEffect } from 'react'
+
+interface User {
+  id: number
+  name: string
+  email: string
 }
 
-app.get("/", (req, res) => {
-  res.send("API QA App funcionando");
-});
+export default function Users() {
+  const [users, setUsers] = useState<User[]>([])
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
 
-app.post("/api/log", (req, res) => {
-  const { message, level, user } = req.body;
-  const logEntry = {
-    message,
-    level,
-    user: user || "anon",
-    timestamp: new Date().toISOString(),
-  };
-  const currentLogs = JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
-  currentLogs.push(logEntry);
-  fs.writeFileSync(LOG_FILE, JSON.stringify(currentLogs, null, 2));
-  res.status(201).json({ ok: true });
-});
+  useEffect(() => {
+    fetch('/api/users')
+      .then((res) => res.json())
+      .then(setUsers)
+  }, [])
 
-app.get("/api/logs", (req, res) => {
-  const logs = JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
-  res.json(logs);
-});
+  const addUser = () => {
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email }),
+    })
+      .then((res) => res.json())
+      .then((newUser) => setUsers([...users, newUser]))
+  }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend corriendo en http://localhost:${PORT}`);
-});
+  const deleteUser = (id: number) => {
+    fetch(`/api/users/${id}`, { method: 'DELETE' }).then(() =>
+      setUsers(users.filter((u) => u.id !== id))
+    )
+  }
+
+  return (
+    <div>
+      <h1 data-qa-id="title-users">Usuarios</h1>
+      <input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button onClick={addUser} data-qa-id="btn-add-user">Añadir</button>
+      <ul>
+        {users.map((user) => (
+          <li key={user.id}>
+            {user.name} ({user.email}){' '}
+            <button onClick={() => deleteUser(user.id)} data-qa-id={`btn-del-user-${user.id}`}>
+              Eliminar
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/routes/Users.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/server.js
+=======================================
+const express = require('express')
+const cors = require('cors')
+const bodyParser = require('body-parser')
+const app = express()
+const PORT = 3001
+
+app.use(cors())
+app.use(bodyParser.json())
+
+let users = [{ id: 1, name: 'Juan', email: 'juan@test.com' }]
+
+app.get('/api/users', (req, res) => {
+  res.json(users)
+})
+
+app.post('/api/users', (req, res) => {
+  const newUser = { id: Date.now(), ...req.body }
+  users.push(newUser)
+  res.json(newUser)
+})
+
+app.delete('/api/users/:id', (req, res) => {
+  users = users.filter((u) => u.id != req.params.id)
+  res.sendStatus(200)
+})
+
+app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
 =======================================
 FIN FICHERO >> ./backend/server.js
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/index.html
-=======================================
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title>QA App</title>
-    <script type="module" src="/main.js"></script>
-  </head>
-  <body>
-    <h1 id="title"></h1>
-
-    <div>
-      <label for="lang-select">🌐 Idioma:</label>
-      <select id="lang-select">
-        <option value="es">Español</option>
-        <option value="en">English</option>
-      </select>
-    </div>
-
-    <div>
-      <label for="log-msg">📝 Log:</label>
-      <input id="log-msg" />
-      <button id="send-log">Enviar</button>
-    </div>
-
-    <h2>📊 Logs Dashboard</h2>
-    <canvas id="chart" width="600" height="300"></canvas>
-  </body>
-</html>
-=======================================
-FIN FICHERO >> ./frontend/index.html
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/i18n.js
-=======================================
-export const translations = {
-  es: {
-    title: "Bienvenido a la QA App",
-    send: "Enviar",
-    log: "Mensaje de log",
-    dashboard: "Dashboard de Logs",
-  },
-  en: {
-    title: "Welcome to the QA App",
-    send: "Send",
-    log: "Log message",
-    dashboard: "Log Dashboard",
-  },
-};
-=======================================
-FIN FICHERO >> ./frontend/i18n.js
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/main.js
-=======================================
-import Chart from "chart.js/auto";
-import { translations } from "./i18n.js";
-
-const title = document.getElementById("title");
-const langSelect = document.getElementById("lang-select");
-const logMsg = document.getElementById("log-msg");
-const sendBtn = document.getElementById("send-log");
-const chartCanvas = document.getElementById("chart");
-
-// Simular usuario y rol en localStorage
-if (!localStorage.getItem("user")) {
-  localStorage.setItem("user", JSON.stringify({ name: "tester", role: "admin" }));
-}
-
-let lang = "es";
-
-function applyTranslation() {
-  const t = translations[lang];
-  title.innerText = t.title;
-  sendBtn.innerText = t.send;
-  logMsg.placeholder = t.log;
-}
-
-langSelect.value = lang;
-langSelect.addEventListener("change", (e) => {
-  lang = e.target.value;
-  applyTranslation();
-});
-
-sendBtn.addEventListener("click", async () => {
-  const msg = logMsg.value;
-  if (!msg) return;
-
-  const user = JSON.parse(localStorage.getItem("user"));
-  await fetch("http://localhost:3000/api/log", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: msg, level: "info", user: user.name }),
-  });
-  logMsg.value = "";
-  loadLogs();
-});
-
-let chart;
-
-async function loadLogs() {
-  const res = await fetch("http://localhost:3000/api/logs");
-  const logs = await res.json();
-
-  const grouped = logs.reduce((acc, log) => {
-    const label = log.user || "anon";
-    acc[label] = acc[label] ? acc[label] + 1 : 1;
-    return acc;
-  }, {});
-
-  const labels = Object.keys(grouped);
-  const data = Object.values(grouped);
-
-  if (chart) chart.destroy();
-  chart = new Chart(chartCanvas, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "Logs por usuario", data }],
-    },
-  });
-}
-
-applyTranslation();
-loadLogs();
-=======================================
-FIN FICHERO >> ./frontend/main.js
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/package.json
-=======================================
-{
-  "name": "qaapp-frontend",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "vite"
-  },
-  "dependencies": {
-    "chart.js": "^4.4.0"
-  },
-  "devDependencies": {
-    "vite": "^5.4.19"
-  }
-}
-=======================================
-FIN FICHERO >> ./frontend/package.json
-=======================================
-
-=======================================
-INICIO FICHERO >> ./Makefile.dev
-=======================================
-# Makefile para desarrollo local de QA App
-
-install:
-	docker-compose run --rm backend sh -c "npm install"
-	docker-compose run --rm frontend sh -c "npm install"
-
-dev: build install
-	docker-compose up -d
-	docker-compose logs -f
-
-build:
-	docker-compose build
-
-stop:
-	docker-compose down
-=======================================
-FIN FICHERO >> ./Makefile.dev
-=======================================
-
-=======================================
 INICIO FICHERO >> ./docker-compose.yml
 =======================================
+version: '3.9'
 services:
   backend:
-    container_name: qaapp-backend
     build: ./backend
     ports:
-      - "3000:3000"
+      - '3001:3001'
     volumes:
       - ./backend:/app
-      - ./backend/data:/app/data
   frontend:
-    container_name: qaapp-frontend
     build: ./frontend
     ports:
-      - "5173:5173"
+      - '5173:5173'
     volumes:
       - ./frontend:/app
-    command: sh -c "npm run dev"
+      - /app/node_modules
+    command: npm run dev
 =======================================
 FIN FICHERO >> ./docker-compose.yml
 =======================================
