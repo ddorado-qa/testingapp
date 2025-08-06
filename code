@@ -1,225 +1,148 @@
 =======================================
-INICIO FICHERO >> ./frontend/src/App.jsx
+INICIO FICHERO >> ./frontend/src/pages/Products.jsx
 =======================================
-// Enrutamiento con nueva página "Users"
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Users from "./pages/Users";
-import Navbar from "./components/Navbar";
+// Página de productos con CRUD simple
+import React, { useState } from 'react';
+import { PlusCircle, Trash2, Edit } from 'lucide-react';
 
-export default function App() {
-  return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/users" element={<Users />} />
-      </Routes>
-    </Router>
-  );
-}
-=======================================
-FIN FICHERO >> ./frontend/src/App.jsx
-=======================================
+const initialProducts = [
+  { id: 1, name: 'Producto A', price: 25, stock: 10 },
+  { id: 2, name: 'Producto B', price: 45, stock: 20 },
+];
 
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/Users.jsx
-=======================================
-import { useState } from "react";
-import Table from "../components/Table";
-import Modal from "../components/Modal";
-import UserForm from "../components/UserForm";
-
-export default function Users() {
-  const [users, setUsers] = useState([
-    { id: 1, name: "Juan", email: "juan@example.com" },
-    { id: 2, name: "Ana", email: "ana@example.com" },
-  ]);
+export default function Products() {
+  const [products, setProducts] = useState(initialProducts);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name: '', price: '', stock: '' });
 
-  const handleAdd = () => {
-    setEditingUser(null);
+  const openNew = () => {
+    setEditing(null);
+    setForm({ name: '', price: '', stock: '' });
     setModalOpen(true);
   };
 
-  const handleSave = (user) => {
-    if (editingUser) {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? user : u))
+  const handleSubmit = () => {
+    if (editing) {
+      setProducts(p =>
+        p.map(prod => (prod.id === editing.id ? { ...editing, ...form } : prod))
       );
     } else {
-      setUsers((prev) => [...prev, { ...user, id: Date.now() }]);
+      const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
+      setProducts(p => [...p, { ...form, id: newId }]);
     }
     setModalOpen(false);
   };
 
-  const handleEdit = (user) => {
-    setEditingUser(user);
-    setModalOpen(true);
+  const handleDelete = id => {
+    setProducts(p => p.filter(prod => prod.id !== id));
   };
 
-  const handleDelete = (id) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+  const handleEdit = product => {
+    setEditing(product);
+    setForm({ name: product.name, price: product.price, stock: product.stock });
+    setModalOpen(true);
   };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+      <h2 className="text-2xl font-bold mb-4">Gestión de Productos</h2>
       <button
-        onClick={handleAdd}
-        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
-        data-qa-id="btn-add-user"
+        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-4"
+        onClick={openNew}
+        qa-id="btn-add-product"
       >
-        Añadir Usuario
+        <PlusCircle className="mr-2" /> Nuevo Producto
       </button>
-      <Table
-        headers={["Nombre", "Email", "Acciones"]}
-        rows={users.map((u) => [
-          u.name,
-          u.email,
-          <>
-            <button
-              className="text-blue-500"
-              onClick={() => handleEdit(u)}
-              data-qa-id={`edit-user-${u.id}`}
-            >
-              Editar
-            </button>
-            <button
-              className="text-red-500 ml-2"
-              onClick={() => handleDelete(u.id)}
-              data-qa-id={`delete-user-${u.id}`}
-            >
-              Eliminar
-            </button>
-          </>,
-        ])}
-      />
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <UserForm user={editingUser} onSave={handleSave} />
-      </Modal>
-    </div>
-  );
-}
-=======================================
-FIN FICHERO >> ./frontend/src/pages/Users.jsx
-=======================================
 
-=======================================
-INICIO FICHERO >> ./frontend/src/components/Table.jsx
-=======================================
-export default function Table({ headers, rows }) {
-  return (
-    <table className="min-w-full bg-white border rounded shadow">
-      <thead>
-        <tr>
-          {headers.map((h, i) => (
-            <th key={i} className="text-left p-2 border-b">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((cols, idx) => (
-          <tr key={idx} className="border-t">
-            {cols.map((col, i) => (
-              <td key={i} className="p-2">
-                {col}
-              </td>
-            ))}
+      <table className="min-w-full bg-white border rounded shadow">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b text-left">Nombre</th>
+            <th className="py-2 px-4 border-b text-left">Precio</th>
+            <th className="py-2 px-4 border-b text-left">Stock</th>
+            <th className="py-2 px-4 border-b text-left">Acciones</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-=======================================
-FIN FICHERO >> ./frontend/src/components/Table.jsx
-=======================================
+        </thead>
+        <tbody>
+          {products.map(prod => (
+            <tr key={prod.id} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b" qa-id={`product-name-${prod.id}`}>{prod.name}</td>
+              <td className="py-2 px-4 border-b" qa-id={`product-price-${prod.id}`}>${prod.price}</td>
+              <td className="py-2 px-4 border-b" qa-id={`product-stock-${prod.id}`}>{prod.stock}</td>
+              <td className="py-2 px-4 border-b space-x-2">
+                <button
+                  onClick={() => handleEdit(prod)}
+                  className="text-yellow-600 hover:text-yellow-800"
+                  qa-id={`btn-edit-${prod.id}`}
+                >
+                  <Edit />
+                </button>
+                <button
+                  onClick={() => handleDelete(prod.id)}
+                  className="text-red-600 hover:text-red-800"
+                  qa-id={`btn-delete-${prod.id}`}
+                >
+                  <Trash2 />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-=======================================
-INICIO FICHERO >> ./frontend/src/components/Modal.jsx
-=======================================
-export default function Modal({ isOpen, onClose, children }) {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 text-gray-600"
-          data-qa-id="modal-close"
-        >
-          ✕
-        </button>
-        {children}
-      </div>
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-md">
+            <h3 className="text-xl font-semibold mb-4">
+              {editing ? 'Editar Producto' : 'Nuevo Producto'}
+            </h3>
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              className="w-full mb-2 p-2 border rounded"
+              qa-id="input-name"
+            />
+            <input
+              type="number"
+              placeholder="Precio"
+              value={form.price}
+              onChange={e => setForm({ ...form, price: parseFloat(e.target.value) })}
+              className="w-full mb-2 p-2 border rounded"
+              qa-id="input-price"
+            />
+            <input
+              type="number"
+              placeholder="Stock"
+              value={form.stock}
+              onChange={e => setForm({ ...form, stock: parseInt(e.target.value) })}
+              className="w-full mb-4 p-2 border rounded"
+              qa-id="input-stock"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+                qa-id="btn-cancel"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                qa-id="btn-save"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 =======================================
-FIN FICHERO >> ./frontend/src/components/Modal.jsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./frontend/src/components/UserForm.jsx
-=======================================
-import { useState, useEffect } from "react";
-
-export default function UserForm({ user, onSave }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name);
-      setEmail(user.email);
-    } else {
-      setName("");
-      setEmail("");
-    }
-  }, [user]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name || !email) return;
-    onSave({ ...user, name, email });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} data-qa-id="form-user">
-      <div className="mb-4">
-        <label className="block mb-1">Nombre</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="border px-3 py-2 w-full rounded"
-          data-qa-id="input-name"
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block mb-1">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border px-3 py-2 w-full rounded"
-          data-qa-id="input-email"
-        />
-      </div>
-      <button
-        type="submit"
-        className="bg-green-600 text-white px-4 py-2 rounded"
-        data-qa-id="btn-save-user"
-      >
-        Guardar
-      </button>
-    </form>
-  );
-}
-=======================================
-FIN FICHERO >> ./frontend/src/components/UserForm.jsx
+FIN FICHERO >> ./frontend/src/pages/Products.jsx
 =======================================
