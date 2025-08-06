@@ -1,115 +1,225 @@
 =======================================
 INICIO FICHERO >> ./frontend/src/App.jsx
 =======================================
-// Rutas principales con layout y navegación centralizada
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Dashboard from './pages/Dashboard'
-import Users from './pages/Users'
-import Products from './pages/Products'
-import Logs from './pages/Logs'
-import Settings from './pages/Settings'
-import Support from './pages/Support'
-import Rating from './pages/Rating'
-import NotFound from './pages/NotFound'
-import Navbar from './components/Navbar'
+// Enrutamiento con nueva página "Users"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Users from "./pages/Users";
+import Navbar from "./components/Navbar";
 
-function App() {
+export default function App() {
   return (
     <Router>
-      <div className="flex flex-col h-screen">
-        <Navbar />
-        <main className="flex-grow overflow-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/logs" element={<Logs />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/rating" element={<Rating />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-      </div>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/users" element={<Users />} />
+      </Routes>
     </Router>
-  )
+  );
 }
-
-export default App
 =======================================
 FIN FICHERO >> ./frontend/src/App.jsx
 =======================================
 
-
 =======================================
-INICIO FICHERO >> ./frontend/src/components/Navbar.jsx
+INICIO FICHERO >> ./frontend/src/pages/Users.jsx
 =======================================
-// Barra de navegación superior con links
-import { Link, useLocation } from 'react-router-dom'
+import { useState } from "react";
+import Table from "../components/Table";
+import Modal from "../components/Modal";
+import UserForm from "../components/UserForm";
 
-const routes = [
-  { path: '/', label: 'Dashboard' },
-  { path: '/users', label: 'Users' },
-  { path: '/products', label: 'Products' },
-  { path: '/logs', label: 'Logs' },
-  { path: '/settings', label: 'Settings' },
-  { path: '/support', label: 'Support' },
-  { path: '/rating', label: 'Rating' }
-]
+export default function Users() {
+  const [users, setUsers] = useState([
+    { id: 1, name: "Juan", email: "juan@example.com" },
+    { id: 2, name: "Ana", email: "ana@example.com" },
+  ]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
-export default function Navbar() {
-  const location = useLocation()
+  const handleAdd = () => {
+    setEditingUser(null);
+    setModalOpen(true);
+  };
+
+  const handleSave = (user) => {
+    if (editingUser) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? user : u))
+      );
+    } else {
+      setUsers((prev) => [...prev, { ...user, id: Date.now() }]);
+    }
+    setModalOpen(false);
+  };
+
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setModalOpen(true);
+  };
+
+  const handleDelete = (id) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow px-4 py-2 flex gap-4 items-center">
-      {routes.map(route => (
-        <Link
-          key={route.path}
-          to={route.path}
-          className={`px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 ${
-            location.pathname === route.path ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-100'
-          }`}
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+      <button
+        onClick={handleAdd}
+        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+        data-qa-id="btn-add-user"
+      >
+        Añadir Usuario
+      </button>
+      <Table
+        headers={["Nombre", "Email", "Acciones"]}
+        rows={users.map((u) => [
+          u.name,
+          u.email,
+          <>
+            <button
+              className="text-blue-500"
+              onClick={() => handleEdit(u)}
+              data-qa-id={`edit-user-${u.id}`}
+            >
+              Editar
+            </button>
+            <button
+              className="text-red-500 ml-2"
+              onClick={() => handleDelete(u.id)}
+              data-qa-id={`delete-user-${u.id}`}
+            >
+              Eliminar
+            </button>
+          </>,
+        ])}
+      />
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+        <UserForm user={editingUser} onSave={handleSave} />
+      </Modal>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Table.jsx
+=======================================
+export default function Table({ headers, rows }) {
+  return (
+    <table className="min-w-full bg-white border rounded shadow">
+      <thead>
+        <tr>
+          {headers.map((h, i) => (
+            <th key={i} className="text-left p-2 border-b">
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((cols, idx) => (
+          <tr key={idx} className="border-t">
+            {cols.map((col, i) => (
+              <td key={i} className="p-2">
+                {col}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Table.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Modal.jsx
+=======================================
+export default function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-600"
+          data-qa-id="modal-close"
         >
-          {route.label}
-        </Link>
-      ))}
-    </nav>
-  )
-}
-=======================================
-FIN FICHERO >> ./frontend/src/components/Navbar.jsx
-=======================================
-
-
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
-=======================================
-// Página principal con mensaje de bienvenida
-export default function Dashboard() {
-  return (
-    <div className="p-4">
-      <h1 className="text-3xl font-bold mb-4">Bienvenido a la QA App</h1>
-      <p className="text-lg">Selecciona una sección del menú para comenzar.</p>
+          ✕
+        </button>
+        {children}
+      </div>
     </div>
-  )
+  );
 }
 =======================================
-FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
+FIN FICHERO >> ./frontend/src/components/Modal.jsx
 =======================================
 
+=======================================
+INICIO FICHERO >> ./frontend/src/components/UserForm.jsx
+=======================================
+import { useState, useEffect } from "react";
 
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/NotFound.jsx
-=======================================
-// Página 404 para rutas no encontradas
-export default function NotFound() {
+export default function UserForm({ user, onSave }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+    } else {
+      setName("");
+      setEmail("");
+    }
+  }, [user]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name || !email) return;
+    onSave({ ...user, name, email });
+  };
+
   return (
-    <div className="p-4 text-center">
-      <h1 className="text-4xl font-bold text-red-600">404</h1>
-      <p className="text-xl">Página no encontrada.</p>
-    </div>
-  )
+    <form onSubmit={handleSubmit} data-qa-id="form-user">
+      <div className="mb-4">
+        <label className="block mb-1">Nombre</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="border px-3 py-2 w-full rounded"
+          data-qa-id="input-name"
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border px-3 py-2 w-full rounded"
+          data-qa-id="input-email"
+        />
+      </div>
+      <button
+        type="submit"
+        className="bg-green-600 text-white px-4 py-2 rounded"
+        data-qa-id="btn-save-user"
+      >
+        Guardar
+      </button>
+    </form>
+  );
 }
 =======================================
-FIN FICHERO >> ./frontend/src/pages/NotFound.jsx
+FIN FICHERO >> ./frontend/src/components/UserForm.jsx
 =======================================
