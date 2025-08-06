@@ -1,33 +1,45 @@
-// Backend simple con logging básico y simulación de sesiones
+// Servidor Express con persistencia de logs, CORS y simulación de sesión
+const express = require("express");
+const fs = require("fs");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const path = require("path");
 
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
-app.use(require('cors')());
+const LOG_FILE = path.join(__dirname, "data", "logs.json");
 
-const LOG_FILE = path.join(__dirname, 'data', 'logs.json');
+app.use(cors());
+app.use(bodyParser.json());
 
-// Asegura que logs.json exista
 if (!fs.existsSync(LOG_FILE)) {
-  fs.writeFileSync(LOG_FILE, '[]');
+  fs.writeFileSync(LOG_FILE, "[]");
 }
 
-app.get('/api/logs', (req, res) => {
-  const logs = JSON.parse(fs.readFileSync(LOG_FILE));
+app.get("/", (req, res) => {
+  res.send("API QA App funcionando");
+});
+
+app.post("/api/log", (req, res) => {
+  const { message, level, user } = req.body;
+  const logEntry = {
+    message,
+    level,
+    user: user || "anon",
+    timestamp: new Date().toISOString(),
+  };
+  const currentLogs = JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
+  currentLogs.push(logEntry);
+  fs.writeFileSync(LOG_FILE, JSON.stringify(currentLogs, null, 2));
+  res.status(201).json({ ok: true });
+});
+
+app.get("/api/logs", (req, res) => {
+  const logs = JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
   res.json(logs);
 });
 
-app.post('/api/logs', (req, res) => {
-  const logs = JSON.parse(fs.readFileSync(LOG_FILE));
-  logs.push({ ...req.body, timestamp: new Date().toISOString() });
-  fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
-  res.status(201).json({ message: 'Log saved' });
-});
-
 app.listen(PORT, () => {
-  console.log(`🟢 Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 Backend corriendo en http://localhost:${PORT}`);
 });

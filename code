@@ -1,25 +1,250 @@
 =======================================
-INICIO FICHERO >> ./backend/Dockerfile
+INICIO FICHERO >> ./backend/server.js
 =======================================
-FROM node:20-alpine
+// Servidor Express con persistencia de logs, CORS y simulación de sesión
+const express = require("express");
+const fs = require("fs");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const path = require("path");
 
-# Crear directorio de trabajo
-WORKDIR /app
+const app = express();
+const PORT = 3000;
 
-# Copiar archivos necesarios antes del build
-COPY package*.json ./
+const LOG_FILE = path.join(__dirname, "data", "logs.json");
 
-# Instalar dependencias
-RUN npm install
+app.use(cors());
+app.use(bodyParser.json());
 
-# Copiar el resto del código fuente
-COPY . .
+if (!fs.existsSync(LOG_FILE)) {
+  fs.writeFileSync(LOG_FILE, "[]");
+}
 
-# Exponer puerto del backend
-EXPOSE 3000
+app.get("/", (req, res) => {
+  res.send("API QA App funcionando");
+});
 
-# Comando de arranque por defecto
-CMD ["node", "server.js"]
+app.post("/api/log", (req, res) => {
+  const { message, level, user } = req.body;
+  const logEntry = {
+    message,
+    level,
+    user: user || "anon",
+    timestamp: new Date().toISOString(),
+  };
+  const currentLogs = JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
+  currentLogs.push(logEntry);
+  fs.writeFileSync(LOG_FILE, JSON.stringify(currentLogs, null, 2));
+  res.status(201).json({ ok: true });
+});
+
+app.get("/api/logs", (req, res) => {
+  const logs = JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
+  res.json(logs);
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Backend corriendo en http://localhost:${PORT}`);
+});
 =======================================
-FIN FICHERO >> ./backend/Dockerfile
+FIN FICHERO >> ./backend/server.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/index.html
+=======================================
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>QA App</title>
+    <script type="module" src="/main.js"></script>
+  </head>
+  <body>
+    <h1 id="title"></h1>
+
+    <div>
+      <label for="lang-select">🌐 Idioma:</label>
+      <select id="lang-select">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="log-msg">📝 Log:</label>
+      <input id="log-msg" />
+      <button id="send-log">Enviar</button>
+    </div>
+
+    <h2>📊 Logs Dashboard</h2>
+    <canvas id="chart" width="600" height="300"></canvas>
+  </body>
+</html>
+=======================================
+FIN FICHERO >> ./frontend/index.html
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/i18n.js
+=======================================
+export const translations = {
+  es: {
+    title: "Bienvenido a la QA App",
+    send: "Enviar",
+    log: "Mensaje de log",
+    dashboard: "Dashboard de Logs",
+  },
+  en: {
+    title: "Welcome to the QA App",
+    send: "Send",
+    log: "Log message",
+    dashboard: "Log Dashboard",
+  },
+};
+=======================================
+FIN FICHERO >> ./frontend/i18n.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/main.js
+=======================================
+import Chart from "chart.js/auto";
+import { translations } from "./i18n.js";
+
+const title = document.getElementById("title");
+const langSelect = document.getElementById("lang-select");
+const logMsg = document.getElementById("log-msg");
+const sendBtn = document.getElementById("send-log");
+const chartCanvas = document.getElementById("chart");
+
+// Simular usuario y rol en localStorage
+if (!localStorage.getItem("user")) {
+  localStorage.setItem("user", JSON.stringify({ name: "tester", role: "admin" }));
+}
+
+let lang = "es";
+
+function applyTranslation() {
+  const t = translations[lang];
+  title.innerText = t.title;
+  sendBtn.innerText = t.send;
+  logMsg.placeholder = t.log;
+}
+
+langSelect.value = lang;
+langSelect.addEventListener("change", (e) => {
+  lang = e.target.value;
+  applyTranslation();
+});
+
+sendBtn.addEventListener("click", async () => {
+  const msg = logMsg.value;
+  if (!msg) return;
+
+  const user = JSON.parse(localStorage.getItem("user"));
+  await fetch("http://localhost:3000/api/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg, level: "info", user: user.name }),
+  });
+  logMsg.value = "";
+  loadLogs();
+});
+
+let chart;
+
+async function loadLogs() {
+  const res = await fetch("http://localhost:3000/api/logs");
+  const logs = await res.json();
+
+  const grouped = logs.reduce((acc, log) => {
+    const label = log.user || "anon";
+    acc[label] = acc[label] ? acc[label] + 1 : 1;
+    return acc;
+  }, {});
+
+  const labels = Object.keys(grouped);
+  const data = Object.values(grouped);
+
+  if (chart) chart.destroy();
+  chart = new Chart(chartCanvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Logs por usuario", data }],
+    },
+  });
+}
+
+applyTranslation();
+loadLogs();
+=======================================
+FIN FICHERO >> ./frontend/main.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/package.json
+=======================================
+{
+  "name": "qaapp-frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.19"
+  }
+}
+=======================================
+FIN FICHERO >> ./frontend/package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./Makefile.dev
+=======================================
+# Makefile para desarrollo local de QA App
+
+install:
+	docker-compose run --rm backend sh -c "npm install"
+	docker-compose run --rm frontend sh -c "npm install"
+
+dev: build install
+	docker-compose up -d
+	docker-compose logs -f
+
+build:
+	docker-compose build
+
+stop:
+	docker-compose down
+=======================================
+FIN FICHERO >> ./Makefile.dev
+=======================================
+
+=======================================
+INICIO FICHERO >> ./docker-compose.yml
+=======================================
+services:
+  backend:
+    container_name: qaapp-backend
+    build: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - ./backend/data:/app/data
+  frontend:
+    container_name: qaapp-frontend
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm run dev"
+=======================================
+FIN FICHERO >> ./docker-compose.yml
 =======================================

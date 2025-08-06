@@ -1,13 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <title>QA App</title>
     <script type="module" src="/main.js"></script>
   </head>
   <body>
-    <h1 qa-id="title">Bienvenido a la QA App</h1>
-    <button qa-id="log-btn">Enviar Log</button>
-    <pre qa-id="log-output"></pre>
+    <h1 id="title"></h1>
+
+    <div>
+      <label for="lang-select">🌐 Idioma:</label>
+      <select id="lang-select">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="log-msg">📝 Log:</label>
+      <input id="log-msg" />
+      <button id="send-log">Enviar</button>
+    </div>
+
+    <h2>📊 Logs Dashboard</h2>
+    <canvas id="chart" width="600" height="300"></canvas>
   </body>
 </html>

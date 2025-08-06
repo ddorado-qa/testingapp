@@ -1,20 +1,15 @@
-# Makefile para levantar y manejar QA App en Docker
+# Makefile para desarrollo local de QA App
 
 install:
 	docker-compose run --rm backend sh -c "npm install"
 	docker-compose run --rm frontend sh -c "npm install"
 
-build:
-	docker-compose build
-
 dev: build install
 	docker-compose up -d
 	docker-compose logs -f
 
+build:
+	docker-compose build
+
 stop:
 	docker-compose down
-
-logs:
-	docker-compose logs -f
-
-restart: stop dev
