@@ -1,109 +1,133 @@
 =======================================
-INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
+INICIO FICHERO >> ./backend/index.js
 =======================================
-import { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart, registerables } from 'chart.js';
+const express = require('express');
+const cors = require('cors');
+const db = require('./lib/db');
+const users = require('./routes/users');
+const products = require('./routes/products');
 
-Chart.register(...registerables);
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-export default function Dashboard() {
-  const [data, setData] = useState({
-    labels: ['Productos', 'Usuarios', 'Logs'],
-    datasets: [
-      {
-        label: 'Conteo',
-        data: [5, 3, 12],
-        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b']
-      }
-    ]
-  });
+app.use('/api/users', users);
+app.use('/api/products', products);
 
-  return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-      <div className="w-full max-w-2xl bg-white rounded shadow p-4">
-        <Bar data={data} />
-      </div>
-    </div>
+// Iniciar servidor
+const PORT = 3001;
+app.listen(PORT, () => {
+  console.log(`Backend API running on http://localhost:${PORT}`);
+});
+=======================================
+FIN FICHERO >> ./backend/index.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/lib/db.js
+=======================================
+const Database = require('better-sqlite3');
+const fs = require('fs');
+const path = require('path');
+
+const dbPath = path.join(__dirname, '../../data/app.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
+const db = new Database(dbPath);
+
+// Crear tabla users
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT DEFAULT 'user'
   );
-}
-=======================================
-FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
-=======================================
+`);
 
-=======================================
-INICIO FICHERO >> ./frontend/src/pages/UsersPage.jsx
-=======================================
-import { useEffect, useState } from 'react';
-
-export default function UsersPage() {
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    // Datos dummy por ahora
-    setUsers([
-      { id: 1, name: 'Alice', email: 'alice@example.com', role: 'admin' },
-      { id: 2, name: 'Bob', email: 'bob@example.com', role: 'user' },
-      { id: 3, name: 'Charlie', email: 'charlie@example.com', role: 'user' }
-    ]);
-  }, []);
-
-  return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Usuarios</h2>
-      <table className="min-w-full bg-white border border-gray-200">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b">ID</th>
-            <th className="py-2 px-4 border-b">Nombre</th>
-            <th className="py-2 px-4 border-b">Email</th>
-            <th className="py-2 px-4 border-b">Rol</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b">{u.id}</td>
-              <td className="py-2 px-4 border-b">{u.name}</td>
-              <td className="py-2 px-4 border-b">{u.email}</td>
-              <td className="py-2 px-4 border-b">{u.role}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+// Crear tabla products
+db.exec(`
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    stock INTEGER DEFAULT 0
   );
-}
+`);
+
+module.exports = db;
 =======================================
-FIN FICHERO >> ./frontend/src/pages/UsersPage.jsx
+FIN FICHERO >> ./backend/lib/db.js
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/App.jsx
+INICIO FICHERO >> ./backend/routes/users.js
 =======================================
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import ProductsPage from './pages/ProductsPage';
-import UsersPage from './pages/UsersPage';
+const express = require('express');
+const db = require('../lib/db');
+const router = express.Router();
 
-export default function App() {
-  return (
-    <Router>
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/users" element={<UsersPage />} />
-          </Routes>
-        </div>
-      </div>
-    </Router>
-  );
-}
+router.get('/', (req, res) => {
+  const users = db.prepare('SELECT * FROM users').all();
+  res.json(users);
+});
+
+router.post('/', (req, res) => {
+  const { name, email, role } = req.body;
+  const stmt = db.prepare('INSERT INTO users (name, email, role) VALUES (?, ?, ?)');
+  const info = stmt.run(name, email, role);
+  res.json({ id: info.lastInsertRowid });
+});
+
+router.put('/:id', (req, res) => {
+  const { name, email, role } = req.body;
+  const stmt = db.prepare('UPDATE users SET name=?, email=?, role=? WHERE id=?');
+  stmt.run(name, email, role, req.params.id);
+  res.json({ updated: true });
+});
+
+router.delete('/:id', (req, res) => {
+  db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
+  res.json({ deleted: true });
+});
+
+module.exports = router;
 =======================================
-FIN FICHERO >> ./frontend/src/App.jsx
+FIN FICHERO >> ./backend/routes/users.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/products.js
+=======================================
+const express = require('express');
+const db = require('../lib/db');
+const router = express.Router();
+
+router.get('/', (req, res) => {
+  const products = db.prepare('SELECT * FROM products').all();
+  res.json(products);
+});
+
+router.post('/', (req, res) => {
+  const { name, price, stock } = req.body;
+  const stmt = db.prepare('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)');
+  const info = stmt.run(name, price, stock);
+  res.json({ id: info.lastInsertRowid });
+});
+
+router.put('/:id', (req, res) => {
+  const { name, price, stock } = req.body;
+  const stmt = db.prepare('UPDATE products SET name=?, price=?, stock=? WHERE id=?');
+  stmt.run(name, price, stock, req.params.id);
+  res.json({ updated: true });
+});
+
+router.delete('/:id', (req, res) => {
+  db.prepare('DELETE FROM products WHERE id=?').run(req.params.id);
+  res.json({ deleted: true });
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/products.js
 =======================================
