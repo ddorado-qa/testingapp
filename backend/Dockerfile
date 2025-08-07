@@ -1,4 +1,3 @@
-# INICIO FICHERO >> ./backend/Dockerfile
 FROM node:20-alpine
 
 WORKDIR /app
@@ -8,6 +7,6 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 3000
-CMD ["npm", "start"]
-# FIN FICHERO >> ./backend/Dockerfile
+EXPOSE 3001
+
+CMD ["node", "index.js"]

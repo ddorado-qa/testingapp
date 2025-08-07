@@ -1,17 +1,20 @@
-// Enrutamiento con nueva página "Users"
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Users from "./pages/Users";
-import Navbar from "./components/Navbar";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import ProductsPage from './pages/ProductsPage';
 
 export default function App() {
   return (
     <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/users" element={<Users />} />
-      </Routes>
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex-1 overflow-y-auto">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/products" element={<ProductsPage />} />
+          </Routes>
+        </div>
+      </div>
     </Router>
   );
 }

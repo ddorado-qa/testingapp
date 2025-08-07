@@ -1,0 +1,2305 @@
+=======================================
+INICIO FICHERO >> ./Makefile.dev
+=======================================
+# Makefile para desarrollo local de QA App
+
+install:
+	docker-compose run --rm backend sh -c "npm install"
+	docker-compose run --rm frontend sh -c "npm install"
+
+dev: build install
+	docker-compose up -d
+	docker-compose logs -f
+
+build:
+	docker-compose build
+
+stop:
+	docker-compose down
+=======================================
+FIN FICHERO >> ./Makefile.dev
+=======================================
+
+=======================================
+INICIO FICHERO >> ./Dockerfile
+=======================================
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY ./server ./server
+COPY ./public ./public
+COPY ./data ./data
+
+RUN npm install express fs
+
+EXPOSE 3000
+CMD ["node", "server/server.js"]
+=======================================
+FIN FICHERO >> ./Dockerfile
+=======================================
+
+=======================================
+INICIO FICHERO >> ./Makefile
+=======================================
+# Comentarios claros
+# Comandos para manejar la aplicación dockerizada y su entorno
+
+# Nombre del servicio contenedor backend
+BACKEND_SERVICE=qaapp-backend
+FRONTEND_SERVICE=qaapp-frontend
+
+# Instalación de dependencias en contenedores
+install:
+	docker-compose run --rm $(BACKEND_SERVICE) sh -c "npm install"
+	docker-compose run --rm $(FRONTEND_SERVICE) sh -c "npm install"
+
+# Levanta el stack dockerizado en segundo plano y muestra logs
+up: install
+	docker-compose up -d
+	@echo "⌛ Esperando unos segundos para iniciar logs..."
+	sleep 3
+	docker-compose logs -f
+
+# Ver logs de todos los servicios
+logs:
+	docker-compose logs -f
+
+# Reinicia la aplicación completa
+restart:
+	docker-compose down
+	make up
+
+# Detiene los contenedores
+down:
+	docker-compose down
+
+# Limpia contenedores y volúmenes
+clean:
+	docker-compose down -v
+	docker system prune -f
+
+# Bash en el backend
+bash:
+	docker exec -it $(BACKEND_SERVICE) sh
+=======================================
+FIN FICHERO >> ./Makefile
+=======================================
+
+=======================================
+INICIO FICHERO >> ./code
+=======================================
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+=======================================
+import { useEffect, useState } from 'react';
+
+export default function ProductsPage() {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/products')
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => console.error('Error fetching products:', err));
+  }, []);
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Productos</h2>
+      <table className="min-w-full bg-white border border-gray-200">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b">ID</th>
+            <th className="py-2 px-4 border-b">Nombre</th>
+            <th className="py-2 px-4 border-b">Precio</th>
+            <th className="py-2 px-4 border-b">Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((p) => (
+            <tr key={p.id} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b">{p.id}</td>
+              <td className="py-2 px-4 border-b">{p.name}</td>
+              <td className="py-2 px-4 border-b">{p.price}</td>
+              <td className="py-2 px-4 border-b">{p.stock}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Sidebar.jsx
+=======================================
+import { Link } from 'react-router-dom';
+
+export default function Sidebar() {
+  return (
+    <div className="w-64 h-full bg-gray-800 text-white flex flex-col p-4">
+      <h1 className="text-2xl font-bold mb-6">QA App</h1>
+      <nav className="flex flex-col gap-2">
+        <Link to="/" className="hover:bg-gray-700 px-3 py-2 rounded">Dashboard</Link>
+        <Link to="/products" className="hover:bg-gray-700 px-3 py-2 rounded">Productos</Link>
+        <Link to="/users" className="hover:bg-gray-700 px-3 py-2 rounded">Usuarios</Link>
+        <Link to="/logs" className="hover:bg-gray-700 px-3 py-2 rounded">Logs</Link>
+        <Link to="/support" className="hover:bg-gray-700 px-3 py-2 rounded">Soporte</Link>
+      </nav>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Sidebar.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/App.jsx
+=======================================
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import ProductsPage from './pages/ProductsPage';
+
+export default function App() {
+  return (
+    <Router>
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex-1 overflow-y-auto">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/products" element={<ProductsPage />} />
+          </Routes>
+        </div>
+      </div>
+    </Router>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/App.jsx
+=======================================
+=======================================
+FIN FICHERO >> ./code
+=======================================
+
+=======================================
+INICIO FICHERO >> ./package.json
+=======================================
+{
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0"
+  }
+}
+=======================================
+FIN FICHERO >> ./package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./docker-compose.yml
+=======================================
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+    environment:
+      - NODE_ENV=development
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:
+=======================================
+FIN FICHERO >> ./docker-compose.yml
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/App.vue
+=======================================
+<template>
+  <div class="layout">
+    <aside>
+      <h2>QA App</h2>
+      <nav>
+        <router-link to="/dashboard" v-if="isLogged">Dashboard</router-link>
+        <router-link to="/users" v-if="isLogged">Usuarios</router-link>
+        <router-link to="/products" v-if="isLogged">Productos</router-link>
+        <router-link to="/logs" v-if="isLogged">Logs</router-link>
+        <router-link to="/settings" v-if="isLogged">Settings</router-link>
+        <router-link to="/support" v-if="isLogged">Soporte</router-link>
+        <router-link to="/rating" v-if="isLogged">Rating</router-link>
+        <router-link to="/login" v-if="!isLogged">Login</router-link>
+        <a href="#" v-if="isLogged" @click="logout">Logout</a>
+      </nav>
+    </aside>
+    <main>
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+const isLogged = computed(() => !!localStorage.getItem('user'))
+const logout = () => {
+  localStorage.removeItem('user')
+  location.href = '/login'
+}
+</script>
+
+<style>
+.layout {
+  display: flex;
+}
+aside {
+  width: 200px;
+  padding: 1rem;
+  background: #eee;
+  min-height: 100vh;
+}
+nav a {
+  display: block;
+  margin: 0.5rem 0;
+}
+main {
+  flex: 1;
+  padding: 1rem;
+}
+</style>
+=======================================
+FIN FICHERO >> ./frontend/App.vue
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/index.html
+=======================================
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA App - Multi Página</title>
+    <script type="module" src="/src/main.jsx"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <div id="root"></div>
+  </body>
+</html>
+=======================================
+FIN FICHERO >> ./frontend/index.html
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/Dockerfile
+=======================================
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host"]
+=======================================
+FIN FICHERO >> ./frontend/Dockerfile
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/postcss.config.cjs
+=======================================
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+=======================================
+FIN FICHERO >> ./frontend/postcss.config.cjs
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/vite.config.js
+=======================================
+// Configuración básica Vite con React y --host para acceder localmente desde otras IPs si se quiere
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: true
+  }
+})
+=======================================
+FIN FICHERO >> ./frontend/vite.config.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/main.js
+=======================================
+import Chart from "chart.js/auto";
+import { translations } from "./i18n.js";
+
+const title = document.getElementById("title");
+const langSelect = document.getElementById("lang-select");
+const logMsg = document.getElementById("log-msg");
+const sendBtn = document.getElementById("send-log");
+const chartCanvas = document.getElementById("chart");
+
+// Simular usuario y rol en localStorage
+if (!localStorage.getItem("user")) {
+  localStorage.setItem("user", JSON.stringify({ name: "tester", role: "admin" }));
+}
+
+let lang = "es";
+
+function applyTranslation() {
+  const t = translations[lang];
+  title.innerText = t.title;
+  sendBtn.innerText = t.send;
+  logMsg.placeholder = t.log;
+}
+
+langSelect.value = lang;
+langSelect.addEventListener("change", (e) => {
+  lang = e.target.value;
+  applyTranslation();
+});
+
+sendBtn.addEventListener("click", async () => {
+  const msg = logMsg.value;
+  if (!msg) return;
+
+  const user = JSON.parse(localStorage.getItem("user"));
+  await fetch("http://localhost:3000/api/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg, level: "info", user: user.name }),
+  });
+  logMsg.value = "";
+  loadLogs();
+});
+
+let chart;
+
+async function loadLogs() {
+  const res = await fetch("http://localhost:3000/api/logs");
+  const logs = await res.json();
+
+  const grouped = logs.reduce((acc, log) => {
+    const label = log.user || "anon";
+    acc[label] = acc[label] ? acc[label] + 1 : 1;
+    return acc;
+  }, {});
+
+  const labels = Object.keys(grouped);
+  const data = Object.values(grouped);
+
+  if (chart) chart.destroy();
+  chart = new Chart(chartCanvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Logs por usuario", data }],
+    },
+  });
+}
+
+applyTranslation();
+loadLogs();
+=======================================
+FIN FICHERO >> ./frontend/main.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/router.js
+=======================================
+import { createRouter, createWebHistory } from 'vue-router'
+import Login from './pages/Login.vue'
+import Dashboard from './pages/Dashboard.vue'
+import Users from './pages/Users.vue'
+import Products from './pages/Products.vue'
+import Logs from './pages/Logs.vue'
+import Settings from './pages/Settings.vue'
+import Support from './pages/Support.vue'
+import Rating from './pages/Rating.vue'
+import NotFound from './pages/NotFound.vue'
+
+const routes = [
+  { path: '/', redirect: '/dashboard' },
+  { path: '/login', component: Login },
+  { path: '/dashboard', component: Dashboard },
+  { path: '/users', component: Users },
+  { path: '/products', component: Products },
+  { path: '/logs', component: Logs },
+  { path: '/settings', component: Settings },
+  { path: '/support', component: Support },
+  { path: '/rating', component: Rating },
+  { path: '/:pathMatch(.*)*', component: NotFound }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router
+=======================================
+FIN FICHERO >> ./frontend/router.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/tailwind.config.cjs
+=======================================
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,jsx,ts,tsx}"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+=======================================
+FIN FICHERO >> ./frontend/tailwind.config.cjs
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/package.json
+=======================================
+{
+  "name": "qaapp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.12.1",
+    "chart.js": "^4.3.0",
+    "react-chartjs-2": "^5.2.0"
+  },
+  "devDependencies": {
+    "vite": "^4.3.9",
+    "@vitejs/plugin-react": "^4.0.0",
+    "tailwindcss": "^3.3.2",
+    "postcss": "^8.4.24",
+    "autoprefixer": "^10.4.14"
+  }
+}
+=======================================
+FIN FICHERO >> ./frontend/package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/i18n.js
+=======================================
+export const translations = {
+  es: {
+    title: "Bienvenido a la QA App",
+    send: "Enviar",
+    log: "Mensaje de log",
+    dashboard: "Dashboard de Logs",
+  },
+  en: {
+    title: "Welcome to the QA App",
+    send: "Send",
+    log: "Log message",
+    dashboard: "Log Dashboard",
+  },
+};
+=======================================
+FIN FICHERO >> ./frontend/i18n.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/app.js
+=======================================
+// Manejador SPA simple + funciones QA
+let session = localStorage.getItem("user");
+if (!session) {
+  session = prompt("Enter username to start session");
+  localStorage.setItem("user", session);
+  setTimeout(() => {
+    alert("Session expired!");
+    logout();
+  }, 60000);
+}
+
+const navigate = (page) => {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById(page).classList.remove('hidden');
+  if (page === 'users') loadUsers();
+  if (page === 'products') loadProducts();
+  if (page === 'logs') loadLogs();
+  if (page === 'dashboard') drawChart();
+};
+
+const logout = () => {
+  localStorage.removeItem("user");
+  location.reload();
+};
+
+const api = (res) => `/api/${res}`;
+
+const loadUsers = async () => {
+  const users = await fetch(api('users')).then(r => r.json());
+  const container = document.getElementById('users');
+  container.innerHTML = `
+    <h2>Users</h2>
+    <button onclick="addUser()" qa-id="add-user-btn">Add User</button>
+    <table qa-id="users-table">
+      <tr><th>Name</th><th>Email</th><th>Action</th></tr>
+      ${users.map(u => `
+        <tr>
+          <td><input value="${u.name}" onchange="updateUser(${u.id}, this.value, 'name')" qa-id="user-name-${u.id}" /></td>
+          <td><input value="${u.email}" onchange="updateUser(${u.id}, this.value, 'email')" qa-id="user-email-${u.id}" /></td>
+          <td><button onclick="deleteUser(${u.id})" qa-id="delete-user-${u.id}">❌</button></td>
+        </tr>
+      `).join('')}
+    </table>`;
+};
+
+const addUser = async () => {
+  const name = prompt("Name:");
+  const email = prompt("Email:");
+  await fetch(api('users'), {
+    method: 'POST',
+    body: JSON.stringify({ name, email }),
+  });
+  loadUsers();
+};
+
+const updateUser = async (id, value, field) => {
+  const users = await fetch(api('users')).then(r => r.json());
+  const user = users.find(u => u.id === id);
+  user[field] = value;
+  await fetch(api('users'), {
+    method: 'PUT',
+    body: JSON.stringify(user),
+  });
+};
+
+const deleteUser = async (id) => {
+  await fetch(api('users'), {
+    method: 'DELETE',
+    body: JSON.stringify({ id }),
+  });
+  loadUsers();
+};
+
+// Productos similar a users
+const loadProducts = async () => {
+  const products = await fetch(api('products')).then(r => r.json());
+  const container = document.getElementById('products');
+  container.innerHTML = `
+    <h2>Products</h2>
+    <button onclick="addProduct()" qa-id="add-product-btn">Add Product</button>
+    <table qa-id="products-table">
+      <tr><th>Name</th><th>Price</th><th>Action</th></tr>
+      ${products.map(p => `
+        <tr draggable="true" ondragstart="drag(event, ${p.id})">
+          <td><input value="${p.name}" onchange="updateProduct(${p.id}, this.value, 'name')" qa-id="product-name-${p.id}" /></td>
+          <td><input value="${p.price}" onchange="updateProduct(${p.id}, this.value, 'price')" qa-id="product-price-${p.id}" /></td>
+          <td><button onclick="deleteProduct(${p.id})" qa-id="delete-product-${p.id}">❌</button></td>
+        </tr>
+      `).join('')}
+    </table>`;
+};
+
+const addProduct = async () => {
+  const name = prompt("Product name:");
+  const price = prompt("Price:");
+  await fetch(api('products'), {
+    method: 'POST',
+    body: JSON.stringify({ name, price }),
+  });
+  loadProducts();
+};
+
+const updateProduct = async (id, value, field) => {
+  const products = await fetch(api('products')).then(r => r.json());
+  const product = products.find(p => p.id === id);
+  product[field] = value;
+  await fetch(api('products'), {
+    method: 'PUT',
+    body: JSON.stringify(product),
+  });
+};
+
+const deleteProduct = async (id) => {
+  await fetch(api('products'), {
+    method: 'DELETE',
+    body: JSON.stringify({ id }),
+  });
+  loadProducts();
+};
+
+const loadLogs = async () => {
+  const logs = await fetch(api('logs')).then(r => r.json());
+  const container = document.getElementById('logs');
+  container.innerHTML = `
+    <h2>Logs</h2>
+    <button onclick="exportLogsCSV()" qa-id="export-logs-btn">Export CSV</button>
+    <table qa-id="logs-table">
+      <tr><th>Action</th><th>Date</th></tr>
+      ${logs.map(l => `<tr><td>${l.action}</td><td>${l.date}</td></tr>`).join('')}
+    </table>`;
+};
+
+const exportLogsCSV = async () => {
+  const logs = await fetch(api('logs')).then(r => r.json());
+  const csv = logs.map(l => `${l.action},${l.date}`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'logs.csv';
+  a.click();
+};
+
+const drawChart = async () => {
+  const ctx = document.getElementById('chart').getContext('2d');
+  const data = await fetch(api('products')).then(r => r.json());
+
+  if (window.chartInstance) window.chartInstance.destroy();
+
+  window.chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(p => p.name),
+      datasets: [{
+        label: 'Prices',
+        data: data.map(p => +p.price),
+      }],
+    },
+  });
+};
+=======================================
+FIN FICHERO >> ./frontend/app.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/pages/Dashboard.vue
+=======================================
+<template>
+  <h1>Dashboard</h1>
+  <p>Bienvenido, {{ user }}</p>
+</template>
+
+<script setup>
+const user = localStorage.getItem('user') || 'Guest'
+</script>
+=======================================
+FIN FICHERO >> ./frontend/pages/Dashboard.vue
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/pages/Login.vue
+=======================================
+<template>
+  <h1>Login</h1>
+  <form @submit.prevent="login">
+    <input v-model="user" placeholder="username" />
+    <button type="submit">Entrar</button>
+  </form>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+const user = ref('')
+const login = () => {
+  localStorage.setItem('user', user.value)
+  location.href = '/dashboard'
+}
+</script>
+=======================================
+FIN FICHERO >> ./frontend/pages/Login.vue
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/pages/Users.vue
+=======================================
+<template>
+  <h1>Usuarios</h1>
+  <p>Aquí irá el CRUD de usuarios</p>
+</template>
+=======================================
+FIN FICHERO >> ./frontend/pages/Users.vue
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/App.tsx
+=======================================
+// @ts-nocheck
+import { useEffect } from "react";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import Home from "./pages/Home";
+import Users from "./pages/Users";
+import Products from "./pages/Products";
+import Logs from "./pages/Logs";
+import Settings from "./pages/Settings";
+import Support from "./pages/Support";
+import Rating from "./pages/Rating";
+import NotFound from "./pages/NotFound";
+import Navbar from "./components/Navbar";
+
+function App() {
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      alert("Sesión expirada por inactividad");
+      window.location.href = "/";
+    }, 1000 * 60 * 10); // 10 minutos
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return (
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/logs" element={<Logs />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/rating" element={<Rating />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
+=======================================
+FIN FICHERO >> ./frontend/src/App.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/index.css
+=======================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+=======================================
+FIN FICHERO >> ./frontend/src/index.css
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/main.jsx
+=======================================
+// Punto de entrada React, renderiza <App/>
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
+=======================================
+FIN FICHERO >> ./frontend/src/main.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/App.jsx
+=======================================
+// Enrutamiento con nueva página "Users"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Users from "./pages/Users";
+import Navbar from "./components/Navbar";
+
+export default function App() {
+  return (
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/users" element={<Users />} />
+      </Routes>
+    </Router>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/App.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Navbar.tsx
+=======================================
+import { NavLink } from "react-router-dom";
+
+function Navbar() {
+  const links = [
+    { to: "/", label: "🏠 Home" },
+    { to: "/users", label: "👥 Usuarios" },
+    { to: "/products", label: "📦 Productos" },
+    { to: "/logs", label: "🧾 Logs" },
+    { to: "/settings", label: "⚙️ Settings" },
+    { to: "/support", label: "🛠 Soporte" },
+    { to: "/rating", label: "⭐ Rating" },
+  ];
+
+  return (
+    <nav className="bg-gray-800 text-white p-4 flex gap-4">
+      {links.map((link) => (
+        <NavLink
+          key={link.to}
+          to={link.to}
+          className={({ isActive }) =>
+            isActive ? "underline font-bold" : "hover:underline"
+          }
+          data-qa-id={`nav-${link.to.replace("/", "") || "home"}`}
+        >
+          {link.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+export default Navbar;
+=======================================
+FIN FICHERO >> ./frontend/src/components/Navbar.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Modal.jsx
+=======================================
+export default function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-600"
+          data-qa-id="modal-close"
+        >
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Modal.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Table.jsx
+=======================================
+export default function Table({ headers, rows }) {
+  return (
+    <table className="min-w-full bg-white border rounded shadow">
+      <thead>
+        <tr>
+          {headers.map((h, i) => (
+            <th key={i} className="text-left p-2 border-b">
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((cols, idx) => (
+          <tr key={idx} className="border-t">
+            {cols.map((col, i) => (
+              <td key={i} className="p-2">
+                {col}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Table.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Layout.tsx
+=======================================
+// Layout con menú lateral y navegación
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import './Layout.css'
+
+const menu = [
+  { path: '/dashboard', label: 'Dashboard' },
+  { path: '/users', label: 'Users' },
+  { path: '/products', label: 'Products' },
+  { path: '/logs', label: 'Logs' },
+  { path: '/settings', label: 'Settings' },
+  { path: '/support', label: 'Support' },
+  { path: '/rating', label: 'Rating' },
+]
+
+export default function Layout() {
+  const location = useLocation()
+  return (
+    <div className="layout">
+      <aside className="sidebar">
+        <h2>QA App</h2>
+        <nav>
+          <ul>
+            {menu.map((item) => (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  className={location.pathname === item.path ? 'active' : ''}
+                  data-qa-id={`nav-${item.label.toLowerCase()}`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+      <main className="content">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Layout.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Navbar.jsx
+=======================================
+// Barra de navegación superior con links
+import { Link, useLocation } from 'react-router-dom'
+
+const routes = [
+  { path: '/', label: 'Dashboard' },
+  { path: '/users', label: 'Users' },
+  { path: '/products', label: 'Products' },
+  { path: '/logs', label: 'Logs' },
+  { path: '/settings', label: 'Settings' },
+  { path: '/support', label: 'Support' },
+  { path: '/rating', label: 'Rating' }
+]
+
+export default function Navbar() {
+  const location = useLocation()
+
+  return (
+    <nav className="bg-white dark:bg-gray-800 shadow px-4 py-2 flex gap-4 items-center">
+      {routes.map(route => (
+        <Link
+          key={route.path}
+          to={route.path}
+          className={`px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 ${
+            location.pathname === route.path ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-100'
+          }`}
+        >
+          {route.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Navbar.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/UserForm.jsx
+=======================================
+import { useState, useEffect } from "react";
+
+export default function UserForm({ user, onSave }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+    } else {
+      setName("");
+      setEmail("");
+    }
+  }, [user]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name || !email) return;
+    onSave({ ...user, name, email });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} data-qa-id="form-user">
+      <div className="mb-4">
+        <label className="block mb-1">Nombre</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="border px-3 py-2 w-full rounded"
+          data-qa-id="input-name"
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block mb-1">Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border px-3 py-2 w-full rounded"
+          data-qa-id="input-email"
+        />
+      </div>
+      <button
+        type="submit"
+        className="bg-green-600 text-white px-4 py-2 rounded"
+        data-qa-id="btn-save-user"
+      >
+        Guardar
+      </button>
+    </form>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/UserForm.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Settings.tsx
+=======================================
+import { useState, useEffect } from "react";
+
+function Settings() {
+  const [autoTest, setAutoTest] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("qa-auto") === "true";
+    setAutoTest(saved);
+  }, []);
+
+  const toggle = () => {
+    localStorage.setItem("qa-auto", (!autoTest).toString());
+    setAutoTest(!autoTest);
+  };
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">⚙️ Configuración QA</h2>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={autoTest}
+          onChange={toggle}
+          data-qa-id="toggle-autotest"
+        />
+        Activar ejecución automática de tests tras cada cambio
+      </label>
+    </div>
+  );
+}
+
+export default Settings;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Settings.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+import { useState } from "react";
+import Table from "../components/Table";
+import Modal from "../components/Modal";
+import UserForm from "../components/UserForm";
+
+export default function Users() {
+  const [users, setUsers] = useState([
+    { id: 1, name: "Juan", email: "juan@example.com" },
+    { id: 2, name: "Ana", email: "ana@example.com" },
+  ]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+
+  const handleAdd = () => {
+    setEditingUser(null);
+    setModalOpen(true);
+  };
+
+  const handleSave = (user) => {
+    if (editingUser) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? user : u))
+      );
+    } else {
+      setUsers((prev) => [...prev, { ...user, id: Date.now() }]);
+    }
+    setModalOpen(false);
+  };
+
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setModalOpen(true);
+  };
+
+  const handleDelete = (id) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+      <button
+        onClick={handleAdd}
+        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+        data-qa-id="btn-add-user"
+      >
+        Añadir Usuario
+      </button>
+      <Table
+        headers={["Nombre", "Email", "Acciones"]}
+        rows={users.map((u) => [
+          u.name,
+          u.email,
+          <>
+            <button
+              className="text-blue-500"
+              onClick={() => handleEdit(u)}
+              data-qa-id={`edit-user-${u.id}`}
+            >
+              Editar
+            </button>
+            <button
+              className="text-red-500 ml-2"
+              onClick={() => handleDelete(u.id)}
+              data-qa-id={`delete-user-${u.id}`}
+            >
+              Eliminar
+            </button>
+          </>,
+        ])}
+      />
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+        <UserForm user={editingUser} onSave={handleSave} />
+      </Modal>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Support.tsx
+=======================================
+import { useState } from "react";
+
+function Support() {
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert(`Soporte enviado desde ${email}: ${msg}`);
+    setEmail("");
+    setMsg("");
+  };
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">🛠 Soporte Técnico</h2>
+      <form onSubmit={handleSubmit} className="space-y-4" data-qa-id="form-support">
+        <input
+          type="email"
+          placeholder="Tu correo"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="border p-2 w-full"
+          required
+          data-qa-id="input-email"
+        />
+        <textarea
+          placeholder="¿En qué podemos ayudarte?"
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          className="border p-2 w-full"
+          required
+          data-qa-id="input-message"
+        />
+        <button className="bg-blue-600 text-white px-4 py-2 rounded" type="submit" data-qa-id="submit-support">
+          Enviar
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default Support;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Support.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Products.jsx
+=======================================
+// Página de productos con CRUD simple
+import React, { useState } from 'react';
+import { PlusCircle, Trash2, Edit } from 'lucide-react';
+
+const initialProducts = [
+  { id: 1, name: 'Producto A', price: 25, stock: 10 },
+  { id: 2, name: 'Producto B', price: 45, stock: 20 },
+];
+
+export default function Products() {
+  const [products, setProducts] = useState(initialProducts);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name: '', price: '', stock: '' });
+
+  const openNew = () => {
+    setEditing(null);
+    setForm({ name: '', price: '', stock: '' });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = () => {
+    if (editing) {
+      setProducts(p =>
+        p.map(prod => (prod.id === editing.id ? { ...editing, ...form } : prod))
+      );
+    } else {
+      const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
+      setProducts(p => [...p, { ...form, id: newId }]);
+    }
+    setModalOpen(false);
+  };
+
+  const handleDelete = id => {
+    setProducts(p => p.filter(prod => prod.id !== id));
+  };
+
+  const handleEdit = product => {
+    setEditing(product);
+    setForm({ name: product.name, price: product.price, stock: product.stock });
+    setModalOpen(true);
+  };
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Gestión de Productos</h2>
+      <button
+        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-4"
+        onClick={openNew}
+        qa-id="btn-add-product"
+      >
+        <PlusCircle className="mr-2" /> Nuevo Producto
+      </button>
+
+      <table className="min-w-full bg-white border rounded shadow">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b text-left">Nombre</th>
+            <th className="py-2 px-4 border-b text-left">Precio</th>
+            <th className="py-2 px-4 border-b text-left">Stock</th>
+            <th className="py-2 px-4 border-b text-left">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map(prod => (
+            <tr key={prod.id} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b" qa-id={`product-name-${prod.id}`}>{prod.name}</td>
+              <td className="py-2 px-4 border-b" qa-id={`product-price-${prod.id}`}>${prod.price}</td>
+              <td className="py-2 px-4 border-b" qa-id={`product-stock-${prod.id}`}>{prod.stock}</td>
+              <td className="py-2 px-4 border-b space-x-2">
+                <button
+                  onClick={() => handleEdit(prod)}
+                  className="text-yellow-600 hover:text-yellow-800"
+                  qa-id={`btn-edit-${prod.id}`}
+                >
+                  <Edit />
+                </button>
+                <button
+                  onClick={() => handleDelete(prod.id)}
+                  className="text-red-600 hover:text-red-800"
+                  qa-id={`btn-delete-${prod.id}`}
+                >
+                  <Trash2 />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-md">
+            <h3 className="text-xl font-semibold mb-4">
+              {editing ? 'Editar Producto' : 'Nuevo Producto'}
+            </h3>
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              className="w-full mb-2 p-2 border rounded"
+              qa-id="input-name"
+            />
+            <input
+              type="number"
+              placeholder="Precio"
+              value={form.price}
+              onChange={e => setForm({ ...form, price: parseFloat(e.target.value) })}
+              className="w-full mb-2 p-2 border rounded"
+              qa-id="input-price"
+            />
+            <input
+              type="number"
+              placeholder="Stock"
+              value={form.stock}
+              onChange={e => setForm({ ...form, stock: parseInt(e.target.value) })}
+              className="w-full mb-4 p-2 border rounded"
+              qa-id="input-stock"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+                qa-id="btn-cancel"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                qa-id="btn-save"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Products.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/NotFound.jsx
+=======================================
+// Página 404 para rutas no encontradas
+export default function NotFound() {
+  return (
+    <div className="p-4 text-center">
+      <h1 className="text-4xl font-bold text-red-600">404</h1>
+      <p className="text-xl">Página no encontrada.</p>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/NotFound.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Productos.jsx
+=======================================
+// Página Productos con CRUD simple sin backend, usando estado local
+import React, { useState } from 'react'
+
+const productosIniciales = [
+  { id: 1, nombre: 'Producto A', precio: 10.5 },
+  { id: 2, nombre: 'Producto B', precio: 20.0 },
+]
+
+export default function Productos() {
+  const [productos, setProductos] = useState(productosIniciales)
+  const [nuevoNombre, setNuevoNombre] = useState('')
+  const [nuevoPrecio, setNuevoPrecio] = useState('')
+
+  function agregarProducto() {
+    if (!nuevoNombre.trim() || !nuevoPrecio) return
+    const idNuevo = productos.length ? productos[productos.length - 1].id + 1 : 1
+    setProductos([...productos, { id: idNuevo, nombre: nuevoNombre, precio: parseFloat(nuevoPrecio) }])
+    setNuevoNombre('')
+    setNuevoPrecio('')
+  }
+
+  function eliminarProducto(id) {
+    setProductos(productos.filter(p => p.id !== id))
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Productos</h1>
+      <div className="mb-4 flex space-x-2">
+        <input
+          type="text"
+          placeholder="Nombre"
+          className="border p-2 flex-grow"
+          value={nuevoNombre}
+          onChange={e => setNuevoNombre(e.target.value)}
+        />
+        <input
+          type="number"
+          step="0.01"
+          placeholder="Precio"
+          className="border p-2 w-24"
+          value={nuevoPrecio}
+          onChange={e => setNuevoPrecio(e.target.value)}
+        />
+        <button
+          onClick={agregarProducto}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Agregar
+        </button>
+      </div>
+
+      <table className="w-full border-collapse border border-gray-300">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border border-gray-300 p-2 text-left">ID</th>
+            <th className="border border-gray-300 p-2 text-left">Nombre</th>
+            <th className="border border-gray-300 p-2 text-left">Precio</th>
+            <th className="border border-gray-300 p-2 text-left">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map(p => (
+            <tr key={p.id} className="hover:bg-gray-100">
+              <td className="border border-gray-300 p-2">{p.id}</td>
+              <td className="border border-gray-300 p-2">{p.nombre}</td>
+              <td className="border border-gray-300 p-2">${p.precio.toFixed(2)}</td>
+              <td className="border border-gray-300 p-2">
+                <button
+                  onClick={() => eliminarProducto(p.id)}
+                  className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                >
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Productos.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+// Página principal con mensaje de bienvenida
+export default function Dashboard() {
+  return (
+    <div className="p-4">
+      <h1 className="text-3xl font-bold mb-4">Bienvenido a la QA App</h1>
+      <p className="text-lg">Selecciona una sección del menú para comenzar.</p>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/LogsPage.jsx
+=======================================
+import React, { useEffect, useState } from 'react';
+
+export default function LogsPage() {
+  const [logs, setLogs] = useState([]);
+  const [type, setType] = useState('');
+
+  useEffect(() => {
+    fetch(`/api/logs${type ? `?type=${type}` : ''}`).then(r => r.json()).then(setLogs);
+  }, [type]);
+
+  return (
+    <div>
+      <h2>Logs</h2>
+      <label>
+        Filter by type:
+        <select qa-id="select-log-type" value={type} onChange={e => setType(e.target.value)}>
+          <option value="">All</option>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+        </select>
+      </label>
+      <ul>
+        {logs.map(log => (
+          <li key={log.id} qa-id={`log-${log.id}`}>
+            [{log.type.toUpperCase()}] {log.message} ({new Date(log.timestamp).toLocaleString()})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/LogsPage.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+=======================================
+import React, { useEffect, useState } from 'react';
+
+export default function ProductsPage() {
+  const [products, setProducts] = useState([]);
+  const [editing, setEditing] = useState({});
+  const [newProduct, setNewProduct] = useState({ name: '', price: '' });
+
+  useEffect(() => {
+    fetch('/api/products').then(r => r.json()).then(setProducts);
+  }, []);
+
+  const saveEdit = (id) => {
+    fetch(`/api/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editing[id])
+    }).then(() => {
+      setEditing(p => {
+        const { [id]: _, ...rest } = p;
+        return rest;
+      });
+      return fetch('/api/products').then(r => r.json()).then(setProducts);
+    });
+  };
+
+  const deleteProduct = (id) => {
+    fetch(`/api/products/${id}`, { method: 'DELETE' })
+      .then(() => setProducts(p => p.filter(prod => prod.id !== id)));
+  };
+
+  const addProduct = () => {
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newProduct)
+    }).then(() => {
+      setNewProduct({ name: '', price: '' });
+      return fetch('/api/products').then(r => r.json()).then(setProducts);
+    });
+  };
+
+  const exportCSV = () => {
+    const csv = ['id,name,price', ...products.map(p => `${p.id},${p.name},${p.price}`)].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'products.csv';
+    a.click();
+  };
+
+  return (
+    <div>
+      <h2>Products</h2>
+      <button qa-id="btn-export-csv" onClick={exportCSV}>Export CSV</button>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Price</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {products.map(prod => (
+            <tr key={prod.id}>
+              <td>{prod.id}</td>
+              <td>
+                <input
+                  qa-id={`edit-name-${prod.id}`}
+                  value={editing[prod.id]?.name ?? prod.name}
+                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, name: e.target.value } })}
+                />
+              </td>
+              <td>
+                <input
+                  qa-id={`edit-price-${prod.id}`}
+                  value={editing[prod.id]?.price ?? prod.price}
+                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, price: e.target.value } })}
+                />
+              </td>
+              <td>
+                <button qa-id={`btn-save-${prod.id}`} onClick={() => saveEdit(prod.id)}>Save</button>
+                <button qa-id={`btn-delete-${prod.id}`} onClick={() => deleteProduct(prod.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+          <tr>
+            <td>New</td>
+            <td><input qa-id="new-name" value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} /></td>
+            <td><input qa-id="new-price" value={newProduct.price} onChange={e => setNewProduct(p => ({ ...p, price: e.target.value }))} /></td>
+            <td><button qa-id="btn-add-product" onClick={addProduct}>Add Product</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Settings.jsx
+=======================================
+// Página Settings básica con opciones ficticias
+import React from 'react'
+
+export default function Settings() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Configuración</h1>
+      <p>Aquí puedes configurar opciones de la aplicación.</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Notificaciones: Activadas</li>
+        <li>Modo oscuro: Desactivado</li>
+        <li>Idioma: Español</li>
+      </ul>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Settings.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Rating.tsx
+=======================================
+import { useState } from "react";
+
+function Rating() {
+  const [score, setScore] = useState(0);
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">⭐ Valora nuestra plataforma</h2>
+      <div className="flex space-x-2 text-2xl" data-qa-id="rating-stars">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span
+            key={n}
+            onClick={() => setScore(n)}
+            style={{ cursor: "pointer", color: n <= score ? "gold" : "gray" }}
+            data-qa-id={`star-${n}`}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+      {score > 0 && (
+        <p className="mt-4 text-green-600 font-semibold" data-qa-id="rating-msg">
+          ¡Gracias por darnos {score} estrella{score > 1 ? "s" : ""}!
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default Rating;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Rating.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Logs.jsx
+=======================================
+// Página Logs con tabla y filtro simple de búsqueda
+import React, { useState } from 'react'
+
+const logsMock = [
+  { id: 1, fecha: '2025-08-01', mensaje: 'Usuario Maria inició sesión' },
+  { id: 2, fecha: '2025-08-02', mensaje: 'Error en módulo Productos' },
+  { id: 3, fecha: '2025-08-03', mensaje: 'Usuario Juan cerró sesión' },
+  { id: 4, fecha: '2025-08-04', mensaje: 'Actualización de producto 23' },
+]
+
+export default function Logs() {
+  const [filtro, setFiltro] = useState('')
+
+  const logsFiltrados = logsMock.filter((log) =>
+    log.mensaje.toLowerCase().includes(filtro.toLowerCase())
+  )
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Logs</h1>
+      <input
+        type="text"
+        placeholder="Buscar en logs..."
+        className="border p-2 mb-4 w-full max-w-sm"
+        value={filtro}
+        onChange={(e) => setFiltro(e.target.value)}
+      />
+      <table className="w-full border-collapse border border-gray-300">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border border-gray-300 p-2 text-left">ID</th>
+            <th className="border border-gray-300 p-2 text-left">Fecha</th>
+            <th className="border border-gray-300 p-2 text-left">Mensaje</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logsFiltrados.map((log) => (
+            <tr key={log.id} className="hover:bg-gray-100">
+              <td className="border border-gray-300 p-2">{log.id}</td>
+              <td className="border border-gray-300 p-2">{log.fecha}</td>
+              <td className="border border-gray-300 p-2">{log.mensaje}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Logs.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/NotFound.tsx
+=======================================
+function NotFound() {
+  return (
+    <div className="p-6 text-center">
+      <h1 className="text-3xl font-bold mb-2">🚫 Página no encontrada</h1>
+      <p>La ruta que buscas no existe.</p>
+    </div>
+  );
+}
+
+export default NotFound;
+=======================================
+FIN FICHERO >> ./frontend/src/pages/NotFound.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Home.jsx
+=======================================
+// Página Home con gráfico de ejemplo usando react-chartjs-2 y Chart.js
+import React from 'react'
+import { Line } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+)
+
+const data = {
+  labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
+  datasets: [
+    {
+      label: 'Usuarios nuevos',
+      data: [12, 19, 3, 5, 2, 3],
+      fill: false,
+      borderColor: 'rgb(37, 99, 235)', // azul
+      backgroundColor: 'rgba(37, 99, 235, 0.5)',
+      tension: 0.3,
+    }
+  ]
+}
+
+const options = {
+  responsive: true,
+  plugins: {
+    legend: { position: 'top' },
+    title: {
+      display: true,
+      text: 'Crecimiento de Usuarios por Mes',
+    },
+  },
+}
+
+export default function Home() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Bienvenido a QA App</h1>
+      <Line options={options} data={data} />
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Home.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Usuarios.jsx
+=======================================
+// Página Usuarios con tabla básica sin conexión a backend (mock)
+import React from 'react'
+
+const usuariosMock = [
+  { id: 1, nombre: 'Maria', email: 'maria@example.com' },
+  { id: 2, nombre: 'Juan', email: 'juan@example.com' },
+  { id: 3, nombre: 'Ana', email: 'ana@example.com' },
+]
+
+export default function Usuarios() {
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Usuarios</h1>
+      <table className="w-full border-collapse border border-gray-300">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="border border-gray-300 p-2 text-left">ID</th>
+            <th className="border border-gray-300 p-2 text-left">Nombre</th>
+            <th className="border border-gray-300 p-2 text-left">Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {usuariosMock.map((u) => (
+            <tr key={u.id} className="hover:bg-gray-100">
+              <td className="border border-gray-300 p-2">{u.id}</td>
+              <td className="border border-gray-300 p-2">{u.nombre}</td>
+              <td className="border border-gray-300 p-2">{u.email}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Usuarios.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/routes/index.tsx
+=======================================
+// Página de navegación principal con layout
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Dashboard from './Dashboard'
+import Users from './Users'
+import Products from './Products'
+import Logs from './Logs'
+import Settings from './Settings'
+import Support from './Support'
+import Rating from './Rating'
+import Login from './Login'
+import NotFound from './NotFound'
+import Layout from '../components/Layout'
+
+const AppRoutes = () => (
+  <Router>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route element={<Layout />}>
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/logs" element={<Logs />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/rating" element={<Rating />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </Router>
+)
+
+export default AppRoutes
+=======================================
+FIN FICHERO >> ./frontend/src/routes/index.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/routes/Users.tsx
+=======================================
+// Página de usuarios (CRUD completo)
+import { useState, useEffect } from 'react'
+
+interface User {
+  id: number
+  name: string
+  email: string
+}
+
+export default function Users() {
+  const [users, setUsers] = useState<User[]>([])
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    fetch('/api/users')
+      .then((res) => res.json())
+      .then(setUsers)
+  }, [])
+
+  const addUser = () => {
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email }),
+    })
+      .then((res) => res.json())
+      .then((newUser) => setUsers([...users, newUser]))
+  }
+
+  const deleteUser = (id: number) => {
+    fetch(`/api/users/${id}`, { method: 'DELETE' }).then(() =>
+      setUsers(users.filter((u) => u.id !== id))
+    )
+  }
+
+  return (
+    <div>
+      <h1 data-qa-id="title-users">Usuarios</h1>
+      <input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button onClick={addUser} data-qa-id="btn-add-user">Añadir</button>
+      <ul>
+        {users.map((user) => (
+          <li key={user.id}>
+            {user.name} ({user.email}){' '}
+            <button onClick={() => deleteUser(user.id)} data-qa-id={`btn-del-user-${user.id}`}>
+              Eliminar
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+=======================================
+FIN FICHERO >> ./frontend/src/routes/Users.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./server/logs.json
+=======================================
+[]
+=======================================
+FIN FICHERO >> ./server/logs.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./server/server.js
+=======================================
+// Servidor web backend con logs y roles
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const port = 3000;
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('/', (_, res) => res.sendFile(path.join(__dirname, '../public/index.html')));
+app.get('/login', (_, res) => res.sendFile(path.join(__dirname, '../public/login.html')));
+app.get('/profile', (_, res) => res.sendFile(path.join(__dirname, '../public/profile.html')));
+app.get('/settings', (_, res) => res.sendFile(path.join(__dirname, '../public/settings.html')));
+app.get('/dashboard', (_, res) => res.sendFile(path.join(__dirname, '../public/dashboard.html')));
+app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, '../public/admin.html')));
+
+// API: persistir logs
+app.post('/api/logs', (req, res) => {
+  const logEntry = req.body;
+  const filePath = path.join(__dirname, '../data/logs.json');
+  let logs = [];
+
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath);
+    logs = JSON.parse(content);
+  }
+
+  logs.push({ timestamp: new Date().toISOString(), ...logEntry });
+  fs.writeFileSync(filePath, JSON.stringify(logs, null, 2));
+  res.json({ status: 'ok' });
+});
+
+app.listen(port, () => console.log(`App disponible en http://localhost:${port}`));
+=======================================
+FIN FICHERO >> ./server/server.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/server.js
+=======================================
+// Servidor Express con endpoints extendidos
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+let products = [
+  { id: 1, name: 'Keyboard', price: 50 },
+  { id: 2, name: 'Mouse', price: 30 },
+];
+let logs = [
+  { id: 1, type: 'info', message: 'App started', timestamp: new Date().toISOString() }
+];
+
+// --- PRODUCTS ---
+app.get('/api/products', (req, res) => res.json(products));
+app.post('/api/products', (req, res) => {
+  const product = { id: Date.now(), ...req.body };
+  products.push(product);
+  logs.push({ id: Date.now(), type: 'create', message: `Created product ${product.name}`, timestamp: new Date().toISOString() });
+  res.json(product);
+});
+app.put('/api/products/:id', (req, res) => {
+  const idx = products.findIndex(p => p.id == req.params.id);
+  products[idx] = { ...products[idx], ...req.body };
+  logs.push({ id: Date.now(), type: 'update', message: `Updated product ${products[idx].name}`, timestamp: new Date().toISOString() });
+  res.json(products[idx]);
+});
+app.delete('/api/products/:id', (req, res) => {
+  products = products.filter(p => p.id != req.params.id);
+  logs.push({ id: Date.now(), type: 'delete', message: `Deleted product ${req.params.id}`, timestamp: new Date().toISOString() });
+  res.json({ ok: true });
+});
+
+// --- LOGS ---
+app.get('/api/logs', (req, res) => {
+  const { type } = req.query;
+  let filtered = logs;
+  if (type) filtered = filtered.filter(log => log.type === type);
+  res.json(filtered);
+});
+
+app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
+=======================================
+FIN FICHERO >> ./backend/server.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/Dockerfile
+=======================================
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3001
+
+CMD ["node", "index.js"]
+=======================================
+FIN FICHERO >> ./backend/Dockerfile
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/index.js
+=======================================
+// Servidor express principal
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/products', require('./api/products'));
+
+// Ping
+app.get('/api/ping', (_, res) => res.json({ pong: true }));
+
+// Frontend en producción
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.get('*', (_, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Backend escuchando en http://localhost:${PORT}`);
+});
+=======================================
+FIN FICHERO >> ./backend/index.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/package.json
+=======================================
+{
+  "name": "qaapp-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  }
+}
+=======================================
+FIN FICHERO >> ./backend/package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/api/products.js
+=======================================
+// API de productos con SQLite persistente
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+const router = express.Router();
+
+const DB_PATH = path.join(__dirname, '../../data/products.db');
+const db = new sqlite3.Database(DB_PATH);
+
+// Init: crear tabla si no existe
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    stock INTEGER NOT NULL
+  )`);
+});
+
+// Obtener todos los productos
+router.get('/', (req, res) => {
+  db.all('SELECT * FROM products', (err, rows) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(rows);
+  });
+});
+
+// Crear un nuevo producto
+router.post('/', (req, res) => {
+  const { name, price, stock } = req.body;
+  if (!name || price == null || stock == null) {
+    return res.status(400).json({ error: 'Faltan campos' });
+  }
+
+  const stmt = db.prepare('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)');
+  stmt.run(name, price, stock, function (err) {
+    if (err) return res.status(500).json({ error: 'Error al insertar' });
+    res.status(201).json({ id: this.lastID, name, price, stock });
+  });
+});
+
+// Editar producto
+router.put('/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, price, stock } = req.body;
+  if (!name || price == null || stock == null) {
+    return res.status(400).json({ error: 'Faltan campos' });
+  }
+
+  const stmt = db.prepare('UPDATE products SET name = ?, price = ?, stock = ? WHERE id = ?');
+  stmt.run(name, price, stock, id, function (err) {
+    if (err) return res.status(500).json({ error: 'Error al actualizar' });
+    if (this.changes === 0) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ id: parseInt(id), name, price, stock });
+  });
+});
+
+// Eliminar producto
+router.delete('/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM products WHERE id = ?', id, function (err) {
+    if (err) return res.status(500).json({ error: 'Error al eliminar' });
+    if (this.changes === 0) return res.status(404).json({ error: 'No encontrado' });
+    res.status(204).end();
+  });
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/api/products.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/data/logs.json
+=======================================
+[
+  {
+    "message": "Log desde frontend QA",
+    "timestamp": "2025-08-06T21:43:48.082Z"
+  }
+]
+=======================================
+FIN FICHERO >> ./backend/data/logs.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/data/users.json
+=======================================
+[
+  { "id": 1, "name": "Alice" },
+  { "id": 2, "name": "Bob" }
+]
+=======================================
+FIN FICHERO >> ./backend/data/users.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./data/logs.json
+=======================================
+[]
+=======================================
+FIN FICHERO >> ./data/logs.json
+=======================================
