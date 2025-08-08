@@ -1,133 +1,186 @@
 =======================================
-INICIO FICHERO >> ./backend/index.js
+INICIO FICHERO >> ./frontend/.env
 =======================================
-const express = require('express');
-const cors = require('cors');
-const db = require('./lib/db');
-const users = require('./routes/users');
-const products = require('./routes/products');
+VITE_API_URL=http://backend:3001/api
+=======================================
+FIN FICHERO >> ./frontend/.env
+=======================================
 
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+import { useEffect, useState } from "react";
+
+export default function Users() {
+  const [users, setUsers] = useState([]);
+  const [newUser, setNewUser] = useState({ name: "", email: "" });
+
+  const fetchUsers = async () => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/users`);
+    const data = await res.json();
+    setUsers(data);
+  };
+
+  const addUser = async () => {
+    await fetch(`${import.meta.env.VITE_API_URL}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser),
+    });
+    setNewUser({ name: "", email: "" });
+    fetchUsers();
+  };
+
+  const deleteUser = async (id) => {
+    await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
+      method: "DELETE",
+    });
+    fetchUsers();
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  return (
+    <div>
+      <h2>Users</h2>
+      <input
+        placeholder="Name"
+        value={newUser.name}
+        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+      />
+      <input
+        placeholder="Email"
+        value={newUser.email}
+        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+      />
+      <button onClick={addUser}>Add</button>
+      <ul>
+        {users.map((u) => (
+          <li key={u.id}>
+            {u.name} ({u.email}){" "}
+            <button onClick={() => deleteUser(u.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+import { useEffect, useState } from "react";
+
+export default function Dashboard() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalStock: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/stats`);
+      const data = await res.json();
+      setStats(data);
+    };
+    fetchStats();
+  }, []);
+
+  return (
+    <div>
+      <h2>Dashboard</h2>
+      <p>Total Users: {stats.totalUsers}</p>
+      <p>Total Products: {stats.totalProducts}</p>
+      <p>Total Stock: {stats.totalStock}</p>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/stats.js
+=======================================
+const express = require("express");
+const router = express.Router();
+const db = require("../db");
+
+router.get("/", async (req, res) => {
+  const totalUsers = await db("users").count("id as count").first();
+  const totalProducts = await db("products").count("id as count").first();
+  const totalStock = await db("products").sum("stock as total").first();
+
+  res.json({
+    totalUsers: totalUsers.count,
+    totalProducts: totalProducts.count,
+    totalStock: totalStock.total || 0,
+  });
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/stats.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/server.js
+=======================================
+const express = require("express");
+const cors = require("cors");
 const app = express();
+const port = 3001;
+
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/users', users);
-app.use('/api/products', products);
+app.use("/api/users", require("./routes/users"));
+app.use("/api/products", require("./routes/products"));
+app.use("/api/stats", require("./routes/stats"));
 
-// Iniciar servidor
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Backend API running on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Backend listening on http://localhost:${port}`);
 });
 =======================================
-FIN FICHERO >> ./backend/index.js
+FIN FICHERO >> ./backend/server.js
 =======================================
 
 =======================================
-INICIO FICHERO >> ./backend/lib/db.js
+INICIO FICHERO >> ./frontend/Dockerfile
 =======================================
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+FROM node:20-alpine
+WORKDIR /app
 
-const dbPath = path.join(__dirname, '../../data/app.db');
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+COPY package*.json ./
+RUN npm install
 
-const db = new Database(dbPath);
+COPY . .
 
-// Crear tabla users
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    role TEXT DEFAULT 'user'
-  );
-`);
-
-// Crear tabla products
-db.exec(`
-  CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    price REAL NOT NULL,
-    stock INTEGER DEFAULT 0
-  );
-`);
-
-module.exports = db;
+EXPOSE 5173
+CMD ["npm", "run", "dev"]
 =======================================
-FIN FICHERO >> ./backend/lib/db.js
+FIN FICHERO >> ./frontend/Dockerfile
 =======================================
 
 =======================================
-INICIO FICHERO >> ./backend/routes/users.js
+INICIO FICHERO >> ./backend/Dockerfile
 =======================================
-const express = require('express');
-const db = require('../lib/db');
-const router = express.Router();
+FROM node:20-alpine
+WORKDIR /app
 
-router.get('/', (req, res) => {
-  const users = db.prepare('SELECT * FROM users').all();
-  res.json(users);
-});
+COPY package*.json ./
+RUN npm install
 
-router.post('/', (req, res) => {
-  const { name, email, role } = req.body;
-  const stmt = db.prepare('INSERT INTO users (name, email, role) VALUES (?, ?, ?)');
-  const info = stmt.run(name, email, role);
-  res.json({ id: info.lastInsertRowid });
-});
+COPY . .
 
-router.put('/:id', (req, res) => {
-  const { name, email, role } = req.body;
-  const stmt = db.prepare('UPDATE users SET name=?, email=?, role=? WHERE id=?');
-  stmt.run(name, email, role, req.params.id);
-  res.json({ updated: true });
-});
-
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
-  res.json({ deleted: true });
-});
-
-module.exports = router;
+EXPOSE 3001
+CMD ["npm", "start"]
 =======================================
-FIN FICHERO >> ./backend/routes/users.js
-=======================================
-
-=======================================
-INICIO FICHERO >> ./backend/routes/products.js
-=======================================
-const express = require('express');
-const db = require('../lib/db');
-const router = express.Router();
-
-router.get('/', (req, res) => {
-  const products = db.prepare('SELECT * FROM products').all();
-  res.json(products);
-});
-
-router.post('/', (req, res) => {
-  const { name, price, stock } = req.body;
-  const stmt = db.prepare('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)');
-  const info = stmt.run(name, price, stock);
-  res.json({ id: info.lastInsertRowid });
-});
-
-router.put('/:id', (req, res) => {
-  const { name, price, stock } = req.body;
-  const stmt = db.prepare('UPDATE products SET name=?, price=?, stock=? WHERE id=?');
-  stmt.run(name, price, stock, req.params.id);
-  res.json({ updated: true });
-});
-
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM products WHERE id=?').run(req.params.id);
-  res.json({ deleted: true });
-});
-
-module.exports = router;
-=======================================
-FIN FICHERO >> ./backend/routes/products.js
+FIN FICHERO >> ./backend/Dockerfile
 =======================================

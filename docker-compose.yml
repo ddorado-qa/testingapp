@@ -7,8 +7,10 @@ services:
     ports:
       - '3001:3001'
     volumes:
-      - ./backend:/app
-      - backend_data:/app/data
+      # Montamos el código sin pisar node_modules
+      - ./backend:/app:delegated
+      # Mantenemos los node_modules dentro del contenedor
+      - /app/node_modules
     environment:
       - NODE_ENV=development
 
@@ -21,6 +23,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     command: npm run dev -- --host
+    environment:
+      - VITE_API_URL=http://backend:3001/api
     depends_on:
       - backend
 

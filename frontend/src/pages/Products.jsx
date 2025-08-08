@@ -1,142 +1,89 @@
-// Página de productos con CRUD simple
-import React, { useState } from 'react';
-import { PlusCircle, Trash2, Edit } from 'lucide-react';
-
-const initialProducts = [
-  { id: 1, name: 'Producto A', price: 25, stock: 10 },
-  { id: 2, name: 'Producto B', price: 45, stock: 20 },
-];
+import { useEffect, useState } from 'react';
 
 export default function Products() {
-  const [products, setProducts] = useState(initialProducts);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', price: '', stock: '' });
 
-  const openNew = () => {
-    setEditing(null);
-    setForm({ name: '', price: '', stock: '' });
-    setModalOpen(true);
+  const fetchProducts = async () => {
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    setProducts(data);
   };
 
-  const handleSubmit = () => {
-    if (editing) {
-      setProducts(p =>
-        p.map(prod => (prod.id === editing.id ? { ...editing, ...form } : prod))
-      );
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async () => {
+    if (editingId) {
+      await fetch(`/api/products/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock) }),
+      });
     } else {
-      const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-      setProducts(p => [...p, { ...form, id: newId }]);
+      await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock) }),
+      });
     }
-    setModalOpen(false);
+    setForm({ name: '', price: '', stock: '' });
+    setEditingId(null);
+    fetchProducts();
   };
 
-  const handleDelete = id => {
-    setProducts(p => p.filter(prod => prod.id !== id));
+  const handleEdit = (p) => {
+    setEditingId(p.id);
+    setForm({ name: p.name, price: p.price, stock: p.stock });
   };
 
-  const handleEdit = product => {
-    setEditing(product);
-    setForm({ name: product.name, price: product.price, stock: product.stock });
-    setModalOpen(true);
+  const handleDelete = async (id) => {
+    await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    fetchProducts();
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Productos</h2>
-      <button
-        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-4"
-        onClick={openNew}
-        qa-id="btn-add-product"
-      >
-        <PlusCircle className="mr-2" /> Nuevo Producto
-      </button>
-
-      <table className="min-w-full bg-white border rounded shadow">
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Products</h2>
+      <div className="mb-4 space-x-2">
+        <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="border p-1" />
+        <input name="price" value={form.price} onChange={handleChange} placeholder="Price" className="border p-1" />
+        <input name="stock" value={form.stock} onChange={handleChange} placeholder="Stock" className="border p-1" />
+        <button onClick={handleSubmit} className="bg-blue-500 text-white px-2 py-1">
+          {editingId ? 'Update' : 'Add'}
+        </button>
+      </div>
+      <table className="table-auto w-full border">
         <thead>
           <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b text-left">Nombre</th>
-            <th className="py-2 px-4 border-b text-left">Precio</th>
-            <th className="py-2 px-4 border-b text-left">Stock</th>
-            <th className="py-2 px-4 border-b text-left">Acciones</th>
+            <th className="border px-2 py-1">ID</th>
+            <th className="border px-2 py-1">Name</th>
+            <th className="border px-2 py-1">Price</th>
+            <th className="border px-2 py-1">Stock</th>
+            <th className="border px-2 py-1">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {products.map(prod => (
-            <tr key={prod.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b" qa-id={`product-name-${prod.id}`}>{prod.name}</td>
-              <td className="py-2 px-4 border-b" qa-id={`product-price-${prod.id}`}>${prod.price}</td>
-              <td className="py-2 px-4 border-b" qa-id={`product-stock-${prod.id}`}>{prod.stock}</td>
-              <td className="py-2 px-4 border-b space-x-2">
-                <button
-                  onClick={() => handleEdit(prod)}
-                  className="text-yellow-600 hover:text-yellow-800"
-                  qa-id={`btn-edit-${prod.id}`}
-                >
-                  <Edit />
-                </button>
-                <button
-                  onClick={() => handleDelete(prod.id)}
-                  className="text-red-600 hover:text-red-800"
-                  qa-id={`btn-delete-${prod.id}`}
-                >
-                  <Trash2 />
-                </button>
+          {products.map((p) => (
+            <tr key={p.id}>
+              <td className="border px-2 py-1">{p.id}</td>
+              <td className="border px-2 py-1">{p.name}</td>
+              <td className="border px-2 py-1">{p.price}</td>
+              <td className="border px-2 py-1">{p.stock}</td>
+              <td className="border px-2 py-1 space-x-2">
+                <button onClick={() => handleEdit(p)} className="text-blue-500">Edit</button>
+                <button onClick={() => handleDelete(p.id)} className="text-red-500">Delete</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-md">
-            <h3 className="text-xl font-semibold mb-4">
-              {editing ? 'Editar Producto' : 'Nuevo Producto'}
-            </h3>
-            <input
-              type="text"
-              placeholder="Nombre"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              className="w-full mb-2 p-2 border rounded"
-              qa-id="input-name"
-            />
-            <input
-              type="number"
-              placeholder="Precio"
-              value={form.price}
-              onChange={e => setForm({ ...form, price: parseFloat(e.target.value) })}
-              className="w-full mb-2 p-2 border rounded"
-              qa-id="input-price"
-            />
-            <input
-              type="number"
-              placeholder="Stock"
-              value={form.stock}
-              onChange={e => setForm({ ...form, stock: parseInt(e.target.value) })}
-              className="w-full mb-4 p-2 border rounded"
-              qa-id="input-stock"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-                qa-id="btn-cancel"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                qa-id="btn-save"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

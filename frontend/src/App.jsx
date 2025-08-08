@@ -1,22 +1,20 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
-import ProductsPage from './pages/ProductsPage';
-import UsersPage from './pages/UsersPage';
+import Users from './pages/Users';
 
-export default function App() {
+function App() {
   return (
-    <Router>
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/users" element={<UsersPage />} />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <nav className="p-4 bg-gray-800 text-white flex gap-4">
+        <Link to="/">Dashboard</Link>
+        <Link to="/users">Users</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/users" element={<Users />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
+
+export default App;

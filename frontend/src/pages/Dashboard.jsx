@@ -1,27 +1,27 @@
-import { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart, registerables } from 'chart.js';
-
-Chart.register(...registerables);
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  const [data, setData] = useState({
-    labels: ['Productos', 'Usuarios', 'Logs'],
-    datasets: [
-      {
-        label: 'Conteo',
-        data: [5, 3, 12],
-        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b']
-      }
-    ]
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalStock: 0,
   });
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/stats`);
+      const data = await res.json();
+      setStats(data);
+    };
+    fetchStats();
+  }, []);
+
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-      <div className="w-full max-w-2xl bg-white rounded shadow p-4">
-        <Bar data={data} />
-      </div>
+    <div>
+      <h2>Dashboard</h2>
+      <p>Total Users: {stats.totalUsers}</p>
+      <p>Total Products: {stats.totalProducts}</p>
+      <p>Total Stock: {stats.totalStock}</p>
     </div>
   );
 }

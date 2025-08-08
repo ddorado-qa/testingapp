@@ -90,98 +90,190 @@ FIN FICHERO >> ./Makefile
 INICIO FICHERO >> ./code
 =======================================
 =======================================
-INICIO FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+INICIO FICHERO >> ./frontend/.env
 =======================================
-import { useEffect, useState } from 'react';
+VITE_API_URL=http://backend:3001/api
+=======================================
+FIN FICHERO >> ./frontend/.env
+=======================================
 
-export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+import { useEffect, useState } from "react";
+
+export default function Users() {
+  const [users, setUsers] = useState([]);
+  const [newUser, setNewUser] = useState({ name: "", email: "" });
+
+  const fetchUsers = async () => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/users`);
+    const data = await res.json();
+    setUsers(data);
+  };
+
+  const addUser = async () => {
+    await fetch(`${import.meta.env.VITE_API_URL}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser),
+    });
+    setNewUser({ name: "", email: "" });
+    fetchUsers();
+  };
+
+  const deleteUser = async (id) => {
+    await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
+      method: "DELETE",
+    });
+    fetchUsers();
+  };
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/products')
-      .then((res) => res.json())
-      .then((data) => setProducts(data))
-      .catch((err) => console.error('Error fetching products:', err));
+    fetchUsers();
   }, []);
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Productos</h2>
-      <table className="min-w-full bg-white border border-gray-200">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b">ID</th>
-            <th className="py-2 px-4 border-b">Nombre</th>
-            <th className="py-2 px-4 border-b">Precio</th>
-            <th className="py-2 px-4 border-b">Stock</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((p) => (
-            <tr key={p.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b">{p.id}</td>
-              <td className="py-2 px-4 border-b">{p.name}</td>
-              <td className="py-2 px-4 border-b">{p.price}</td>
-              <td className="py-2 px-4 border-b">{p.stock}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <h2>Users</h2>
+      <input
+        placeholder="Name"
+        value={newUser.name}
+        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+      />
+      <input
+        placeholder="Email"
+        value={newUser.email}
+        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+      />
+      <button onClick={addUser}>Add</button>
+      <ul>
+        {users.map((u) => (
+          <li key={u.id}>
+            {u.name} ({u.email}){" "}
+            <button onClick={() => deleteUser(u.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 =======================================
-FIN FICHERO >> ./frontend/src/pages/ProductsPage.jsx
+FIN FICHERO >> ./frontend/src/pages/Users.jsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/components/Sidebar.jsx
+INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
 =======================================
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
 
-export default function Sidebar() {
+export default function Dashboard() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalStock: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/stats`);
+      const data = await res.json();
+      setStats(data);
+    };
+    fetchStats();
+  }, []);
+
   return (
-    <div className="w-64 h-full bg-gray-800 text-white flex flex-col p-4">
-      <h1 className="text-2xl font-bold mb-6">QA App</h1>
-      <nav className="flex flex-col gap-2">
-        <Link to="/" className="hover:bg-gray-700 px-3 py-2 rounded">Dashboard</Link>
-        <Link to="/products" className="hover:bg-gray-700 px-3 py-2 rounded">Productos</Link>
-        <Link to="/users" className="hover:bg-gray-700 px-3 py-2 rounded">Usuarios</Link>
-        <Link to="/logs" className="hover:bg-gray-700 px-3 py-2 rounded">Logs</Link>
-        <Link to="/support" className="hover:bg-gray-700 px-3 py-2 rounded">Soporte</Link>
-      </nav>
+    <div>
+      <h2>Dashboard</h2>
+      <p>Total Users: {stats.totalUsers}</p>
+      <p>Total Products: {stats.totalProducts}</p>
+      <p>Total Stock: {stats.totalStock}</p>
     </div>
   );
 }
 =======================================
-FIN FICHERO >> ./frontend/src/components/Sidebar.jsx
+FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/App.jsx
+INICIO FICHERO >> ./backend/routes/stats.js
 =======================================
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import ProductsPage from './pages/ProductsPage';
+const express = require("express");
+const router = express.Router();
+const db = require("../db");
 
-export default function App() {
-  return (
-    <Router>
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-          </Routes>
-        </div>
-      </div>
-    </Router>
-  );
-}
+router.get("/", async (req, res) => {
+  const totalUsers = await db("users").count("id as count").first();
+  const totalProducts = await db("products").count("id as count").first();
+  const totalStock = await db("products").sum("stock as total").first();
+
+  res.json({
+    totalUsers: totalUsers.count,
+    totalProducts: totalProducts.count,
+    totalStock: totalStock.total || 0,
+  });
+});
+
+module.exports = router;
 =======================================
-FIN FICHERO >> ./frontend/src/App.jsx
+FIN FICHERO >> ./backend/routes/stats.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/server.js
+=======================================
+const express = require("express");
+const cors = require("cors");
+const app = express();
+const port = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/users", require("./routes/users"));
+app.use("/api/products", require("./routes/products"));
+app.use("/api/stats", require("./routes/stats"));
+
+app.listen(port, () => {
+  console.log(`Backend listening on http://localhost:${port}`);
+});
+=======================================
+FIN FICHERO >> ./backend/server.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/Dockerfile
+=======================================
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5173
+CMD ["npm", "run", "dev"]
+=======================================
+FIN FICHERO >> ./frontend/Dockerfile
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/Dockerfile
+=======================================
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3001
+CMD ["npm", "start"]
+=======================================
+FIN FICHERO >> ./backend/Dockerfile
 =======================================
 =======================================
 FIN FICHERO >> ./code
@@ -211,8 +303,8 @@ services:
     ports:
       - '3001:3001'
     volumes:
-      - ./backend:/app
-      - backend_data:/app/data
+      - ./backend:/app:delegated
+
     environment:
       - NODE_ENV=development
 
@@ -225,6 +317,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     command: npm run dev -- --host
+    environment:
+      - VITE_API_URL=http://backend:3001/api
     depends_on:
       - backend
 
@@ -314,7 +408,6 @@ FIN FICHERO >> ./frontend/index.html
 INICIO FICHERO >> ./frontend/Dockerfile
 =======================================
 FROM node:20-alpine
-
 WORKDIR /app
 
 COPY package*.json ./
@@ -323,8 +416,7 @@ RUN npm install
 COPY . .
 
 EXPOSE 5173
-
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["npm", "run", "dev"]
 =======================================
 FIN FICHERO >> ./frontend/Dockerfile
 =======================================
@@ -836,23 +928,26 @@ FIN FICHERO >> ./frontend/src/main.jsx
 =======================================
 INICIO FICHERO >> ./frontend/src/App.jsx
 =======================================
-// Enrutamiento con nueva página "Users"
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Users from "./pages/Users";
-import Navbar from "./components/Navbar";
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import Users from './pages/Users';
 
-export default function App() {
+function App() {
   return (
-    <Router>
-      <Navbar />
+    <BrowserRouter>
+      <nav className="p-4 bg-gray-800 text-white flex gap-4">
+        <Link to="/">Dashboard</Link>
+        <Link to="/users">Users</Link>
+      </nav>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
+
+export default App;
 =======================================
 FIN FICHERO >> ./frontend/src/App.jsx
 =======================================
@@ -951,6 +1046,29 @@ export default function Table({ headers, rows }) {
 }
 =======================================
 FIN FICHERO >> ./frontend/src/components/Table.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/components/Sidebar.jsx
+=======================================
+import { Link } from 'react-router-dom';
+
+export default function Sidebar() {
+  return (
+    <div className="w-64 h-full bg-gray-800 text-white flex flex-col p-4">
+      <h1 className="text-2xl font-bold mb-6">QA App</h1>
+      <nav className="flex flex-col gap-2">
+        <Link to="/" className="hover:bg-gray-700 px-3 py-2 rounded">Dashboard</Link>
+        <Link to="/products" className="hover:bg-gray-700 px-3 py-2 rounded">Productos</Link>
+        <Link to="/users" className="hover:bg-gray-700 px-3 py-2 rounded">Usuarios</Link>
+        <Link to="/logs" className="hover:bg-gray-700 px-3 py-2 rounded">Logs</Link>
+        <Link to="/support" className="hover:bg-gray-700 px-3 py-2 rounded">Soporte</Link>
+      </nav>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/components/Sidebar.jsx
 =======================================
 
 =======================================
@@ -1144,80 +1262,61 @@ FIN FICHERO >> ./frontend/src/pages/Settings.tsx
 =======================================
 INICIO FICHERO >> ./frontend/src/pages/Users.jsx
 =======================================
-import { useState } from "react";
-import Table from "../components/Table";
-import Modal from "../components/Modal";
-import UserForm from "../components/UserForm";
+import { useEffect, useState } from "react";
 
 export default function Users() {
-  const [users, setUsers] = useState([
-    { id: 1, name: "Juan", email: "juan@example.com" },
-    { id: 2, name: "Ana", email: "ana@example.com" },
-  ]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [newUser, setNewUser] = useState({ name: "", email: "" });
 
-  const handleAdd = () => {
-    setEditingUser(null);
-    setModalOpen(true);
+  const fetchUsers = async () => {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/users`);
+    const data = await res.json();
+    setUsers(data);
   };
 
-  const handleSave = (user) => {
-    if (editingUser) {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? user : u))
-      );
-    } else {
-      setUsers((prev) => [...prev, { ...user, id: Date.now() }]);
-    }
-    setModalOpen(false);
+  const addUser = async () => {
+    await fetch(`${import.meta.env.VITE_API_URL}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser),
+    });
+    setNewUser({ name: "", email: "" });
+    fetchUsers();
   };
 
-  const handleEdit = (user) => {
-    setEditingUser(user);
-    setModalOpen(true);
+  const deleteUser = async (id) => {
+    await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
+      method: "DELETE",
+    });
+    fetchUsers();
   };
 
-  const handleDelete = (id) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
-      <button
-        onClick={handleAdd}
-        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
-        data-qa-id="btn-add-user"
-      >
-        Añadir Usuario
-      </button>
-      <Table
-        headers={["Nombre", "Email", "Acciones"]}
-        rows={users.map((u) => [
-          u.name,
-          u.email,
-          <>
-            <button
-              className="text-blue-500"
-              onClick={() => handleEdit(u)}
-              data-qa-id={`edit-user-${u.id}`}
-            >
-              Editar
-            </button>
-            <button
-              className="text-red-500 ml-2"
-              onClick={() => handleDelete(u.id)}
-              data-qa-id={`delete-user-${u.id}`}
-            >
-              Eliminar
-            </button>
-          </>,
-        ])}
+    <div>
+      <h2>Users</h2>
+      <input
+        placeholder="Name"
+        value={newUser.name}
+        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
       />
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <UserForm user={editingUser} onSave={handleSave} />
-      </Modal>
+      <input
+        placeholder="Email"
+        value={newUser.email}
+        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+      />
+      <button onClick={addUser}>Add</button>
+      <ul>
+        {users.map((u) => (
+          <li key={u.id}>
+            {u.name} ({u.email}){" "}
+            <button onClick={() => deleteUser(u.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -1278,145 +1377,92 @@ FIN FICHERO >> ./frontend/src/pages/Support.tsx
 =======================================
 INICIO FICHERO >> ./frontend/src/pages/Products.jsx
 =======================================
-// Página de productos con CRUD simple
-import React, { useState } from 'react';
-import { PlusCircle, Trash2, Edit } from 'lucide-react';
-
-const initialProducts = [
-  { id: 1, name: 'Producto A', price: 25, stock: 10 },
-  { id: 2, name: 'Producto B', price: 45, stock: 20 },
-];
+import { useEffect, useState } from 'react';
 
 export default function Products() {
-  const [products, setProducts] = useState(initialProducts);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', price: '', stock: '' });
 
-  const openNew = () => {
-    setEditing(null);
-    setForm({ name: '', price: '', stock: '' });
-    setModalOpen(true);
+  const fetchProducts = async () => {
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    setProducts(data);
   };
 
-  const handleSubmit = () => {
-    if (editing) {
-      setProducts(p =>
-        p.map(prod => (prod.id === editing.id ? { ...editing, ...form } : prod))
-      );
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async () => {
+    if (editingId) {
+      await fetch(`/api/products/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock) }),
+      });
     } else {
-      const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-      setProducts(p => [...p, { ...form, id: newId }]);
+      await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock) }),
+      });
     }
-    setModalOpen(false);
+    setForm({ name: '', price: '', stock: '' });
+    setEditingId(null);
+    fetchProducts();
   };
 
-  const handleDelete = id => {
-    setProducts(p => p.filter(prod => prod.id !== id));
+  const handleEdit = (p) => {
+    setEditingId(p.id);
+    setForm({ name: p.name, price: p.price, stock: p.stock });
   };
 
-  const handleEdit = product => {
-    setEditing(product);
-    setForm({ name: product.name, price: product.price, stock: product.stock });
-    setModalOpen(true);
+  const handleDelete = async (id) => {
+    await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    fetchProducts();
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Productos</h2>
-      <button
-        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-4"
-        onClick={openNew}
-        qa-id="btn-add-product"
-      >
-        <PlusCircle className="mr-2" /> Nuevo Producto
-      </button>
-
-      <table className="min-w-full bg-white border rounded shadow">
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Products</h2>
+      <div className="mb-4 space-x-2">
+        <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="border p-1" />
+        <input name="price" value={form.price} onChange={handleChange} placeholder="Price" className="border p-1" />
+        <input name="stock" value={form.stock} onChange={handleChange} placeholder="Stock" className="border p-1" />
+        <button onClick={handleSubmit} className="bg-blue-500 text-white px-2 py-1">
+          {editingId ? 'Update' : 'Add'}
+        </button>
+      </div>
+      <table className="table-auto w-full border">
         <thead>
           <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b text-left">Nombre</th>
-            <th className="py-2 px-4 border-b text-left">Precio</th>
-            <th className="py-2 px-4 border-b text-left">Stock</th>
-            <th className="py-2 px-4 border-b text-left">Acciones</th>
+            <th className="border px-2 py-1">ID</th>
+            <th className="border px-2 py-1">Name</th>
+            <th className="border px-2 py-1">Price</th>
+            <th className="border px-2 py-1">Stock</th>
+            <th className="border px-2 py-1">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {products.map(prod => (
-            <tr key={prod.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b" qa-id={`product-name-${prod.id}`}>{prod.name}</td>
-              <td className="py-2 px-4 border-b" qa-id={`product-price-${prod.id}`}>${prod.price}</td>
-              <td className="py-2 px-4 border-b" qa-id={`product-stock-${prod.id}`}>{prod.stock}</td>
-              <td className="py-2 px-4 border-b space-x-2">
-                <button
-                  onClick={() => handleEdit(prod)}
-                  className="text-yellow-600 hover:text-yellow-800"
-                  qa-id={`btn-edit-${prod.id}`}
-                >
-                  <Edit />
-                </button>
-                <button
-                  onClick={() => handleDelete(prod.id)}
-                  className="text-red-600 hover:text-red-800"
-                  qa-id={`btn-delete-${prod.id}`}
-                >
-                  <Trash2 />
-                </button>
+          {products.map((p) => (
+            <tr key={p.id}>
+              <td className="border px-2 py-1">{p.id}</td>
+              <td className="border px-2 py-1">{p.name}</td>
+              <td className="border px-2 py-1">{p.price}</td>
+              <td className="border px-2 py-1">{p.stock}</td>
+              <td className="border px-2 py-1 space-x-2">
+                <button onClick={() => handleEdit(p)} className="text-blue-500">Edit</button>
+                <button onClick={() => handleDelete(p.id)} className="text-red-500">Delete</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-md">
-            <h3 className="text-xl font-semibold mb-4">
-              {editing ? 'Editar Producto' : 'Nuevo Producto'}
-            </h3>
-            <input
-              type="text"
-              placeholder="Nombre"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              className="w-full mb-2 p-2 border rounded"
-              qa-id="input-name"
-            />
-            <input
-              type="number"
-              placeholder="Precio"
-              value={form.price}
-              onChange={e => setForm({ ...form, price: parseFloat(e.target.value) })}
-              className="w-full mb-2 p-2 border rounded"
-              qa-id="input-price"
-            />
-            <input
-              type="number"
-              placeholder="Stock"
-              value={form.stock}
-              onChange={e => setForm({ ...form, stock: parseInt(e.target.value) })}
-              className="w-full mb-4 p-2 border rounded"
-              qa-id="input-stock"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-                qa-id="btn-cancel"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                qa-id="btn-save"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1532,14 +1578,32 @@ FIN FICHERO >> ./frontend/src/pages/Productos.jsx
 =======================================
 INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
 =======================================
-// Página principal con mensaje de bienvenida
+import { useEffect, useState } from "react";
+
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalStock: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/stats`);
+      const data = await res.json();
+      setStats(data);
+    };
+    fetchStats();
+  }, []);
+
   return (
-    <div className="p-4">
-      <h1 className="text-3xl font-bold mb-4">Bienvenido a la QA App</h1>
-      <p className="text-lg">Selecciona una sección del menú para comenzar.</p>
+    <div>
+      <h2>Dashboard</h2>
+      <p>Total Users: {stats.totalUsers}</p>
+      <p>Total Products: {stats.totalProducts}</p>
+      <p>Total Stock: {stats.totalStock}</p>
     </div>
-  )
+  );
 }
 =======================================
 FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
@@ -1587,94 +1651,39 @@ FIN FICHERO >> ./frontend/src/pages/LogsPage.jsx
 =======================================
 INICIO FICHERO >> ./frontend/src/pages/ProductsPage.jsx
 =======================================
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
-  const [editing, setEditing] = useState({});
-  const [newProduct, setNewProduct] = useState({ name: '', price: '' });
 
   useEffect(() => {
-    fetch('/api/products').then(r => r.json()).then(setProducts);
+    fetch('http://localhost:3001/api/products')
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => console.error('Error fetching products:', err));
   }, []);
 
-  const saveEdit = (id) => {
-    fetch(`/api/products/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editing[id])
-    }).then(() => {
-      setEditing(p => {
-        const { [id]: _, ...rest } = p;
-        return rest;
-      });
-      return fetch('/api/products').then(r => r.json()).then(setProducts);
-    });
-  };
-
-  const deleteProduct = (id) => {
-    fetch(`/api/products/${id}`, { method: 'DELETE' })
-      .then(() => setProducts(p => p.filter(prod => prod.id !== id)));
-  };
-
-  const addProduct = () => {
-    fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProduct)
-    }).then(() => {
-      setNewProduct({ name: '', price: '' });
-      return fetch('/api/products').then(r => r.json()).then(setProducts);
-    });
-  };
-
-  const exportCSV = () => {
-    const csv = ['id,name,price', ...products.map(p => `${p.id},${p.name},${p.price}`)].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'products.csv';
-    a.click();
-  };
-
   return (
-    <div>
-      <h2>Products</h2>
-      <button qa-id="btn-export-csv" onClick={exportCSV}>Export CSV</button>
-      <table>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Productos</h2>
+      <table className="min-w-full bg-white border border-gray-200">
         <thead>
-          <tr><th>ID</th><th>Name</th><th>Price</th><th>Actions</th></tr>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b">ID</th>
+            <th className="py-2 px-4 border-b">Nombre</th>
+            <th className="py-2 px-4 border-b">Precio</th>
+            <th className="py-2 px-4 border-b">Stock</th>
+          </tr>
         </thead>
         <tbody>
-          {products.map(prod => (
-            <tr key={prod.id}>
-              <td>{prod.id}</td>
-              <td>
-                <input
-                  qa-id={`edit-name-${prod.id}`}
-                  value={editing[prod.id]?.name ?? prod.name}
-                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, name: e.target.value } })}
-                />
-              </td>
-              <td>
-                <input
-                  qa-id={`edit-price-${prod.id}`}
-                  value={editing[prod.id]?.price ?? prod.price}
-                  onChange={e => setEditing({ ...editing, [prod.id]: { ...prod, price: e.target.value } })}
-                />
-              </td>
-              <td>
-                <button qa-id={`btn-save-${prod.id}`} onClick={() => saveEdit(prod.id)}>Save</button>
-                <button qa-id={`btn-delete-${prod.id}`} onClick={() => deleteProduct(prod.id)}>Delete</button>
-              </td>
+          {products.map((p) => (
+            <tr key={p.id} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b">{p.id}</td>
+              <td className="py-2 px-4 border-b">{p.name}</td>
+              <td className="py-2 px-4 border-b">{p.price}</td>
+              <td className="py-2 px-4 border-b">{p.stock}</td>
             </tr>
           ))}
-          <tr>
-            <td>New</td>
-            <td><input qa-id="new-name" value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} /></td>
-            <td><input qa-id="new-price" value={newProduct.price} onChange={e => setNewProduct(p => ({ ...p, price: e.target.value }))} /></td>
-            <td><button qa-id="btn-add-product" onClick={addProduct}>Add Product</button></td>
-          </tr>
         </tbody>
       </table>
     </div>
@@ -1814,6 +1823,53 @@ function NotFound() {
 export default NotFound;
 =======================================
 FIN FICHERO >> ./frontend/src/pages/NotFound.tsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/UsersPage.jsx
+=======================================
+import { useEffect, useState } from 'react';
+
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    // Datos dummy por ahora
+    setUsers([
+      { id: 1, name: 'Alice', email: 'alice@example.com', role: 'admin' },
+      { id: 2, name: 'Bob', email: 'bob@example.com', role: 'user' },
+      { id: 3, name: 'Charlie', email: 'charlie@example.com', role: 'user' }
+    ]);
+  }, []);
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Usuarios</h2>
+      <table className="min-w-full bg-white border border-gray-200">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b">ID</th>
+            <th className="py-2 px-4 border-b">Nombre</th>
+            <th className="py-2 px-4 border-b">Email</th>
+            <th className="py-2 px-4 border-b">Rol</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
+            <tr key={u.id} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b">{u.id}</td>
+              <td className="py-2 px-4 border-b">{u.name}</td>
+              <td className="py-2 px-4 border-b">{u.email}</td>
+              <td className="py-2 px-4 border-b">{u.role}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/UsersPage.jsx
 =======================================
 
 =======================================
@@ -2073,56 +2129,43 @@ FIN FICHERO >> ./server/server.js
 =======================================
 
 =======================================
+INICIO FICHERO >> ./backend/database.js
+=======================================
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./data.db');
+
+// Crear tabla si no existe
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL
+  )`);
+});
+
+module.exports = db;
+=======================================
+FIN FICHERO >> ./backend/database.js
+=======================================
+
+=======================================
 INICIO FICHERO >> ./backend/server.js
 =======================================
-// Servidor Express con endpoints extendidos
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const fs = require('fs');
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const PORT = 3001;
+const port = 3001;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-let products = [
-  { id: 1, name: 'Keyboard', price: 50 },
-  { id: 2, name: 'Mouse', price: 30 },
-];
-let logs = [
-  { id: 1, type: 'info', message: 'App started', timestamp: new Date().toISOString() }
-];
+app.use("/api/users", require("./routes/users"));
+app.use("/api/products", require("./routes/products"));
+app.use("/api/stats", require("./routes/stats"));
 
-// --- PRODUCTS ---
-app.get('/api/products', (req, res) => res.json(products));
-app.post('/api/products', (req, res) => {
-  const product = { id: Date.now(), ...req.body };
-  products.push(product);
-  logs.push({ id: Date.now(), type: 'create', message: `Created product ${product.name}`, timestamp: new Date().toISOString() });
-  res.json(product);
+app.listen(port, () => {
+  console.log(`Backend listening on http://localhost:${port}`);
 });
-app.put('/api/products/:id', (req, res) => {
-  const idx = products.findIndex(p => p.id == req.params.id);
-  products[idx] = { ...products[idx], ...req.body };
-  logs.push({ id: Date.now(), type: 'update', message: `Updated product ${products[idx].name}`, timestamp: new Date().toISOString() });
-  res.json(products[idx]);
-});
-app.delete('/api/products/:id', (req, res) => {
-  products = products.filter(p => p.id != req.params.id);
-  logs.push({ id: Date.now(), type: 'delete', message: `Deleted product ${req.params.id}`, timestamp: new Date().toISOString() });
-  res.json({ ok: true });
-});
-
-// --- LOGS ---
-app.get('/api/logs', (req, res) => {
-  const { type } = req.query;
-  let filtered = logs;
-  if (type) filtered = filtered.filter(log => log.type === type);
-  res.json(filtered);
-});
-
-app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
 =======================================
 FIN FICHERO >> ./backend/server.js
 =======================================
@@ -2130,18 +2173,24 @@ FIN FICHERO >> ./backend/server.js
 =======================================
 INICIO FICHERO >> ./backend/Dockerfile
 =======================================
-FROM node:20-alpine
+# Imagen base más compatible (no Alpine)
+FROM node:20
 
 WORKDIR /app
 
+# Copiar package.json y package-lock.json
 COPY package*.json ./
+
+# Instalar dependencias (asegúrate de que express está listado en package.json)
 RUN npm install
 
+# Copiar el resto del código
 COPY . .
 
+# Exponer puerto (ajusta según tu server.js)
 EXPOSE 3001
 
-CMD ["node", "index.js"]
+CMD ["node", "server.js"]
 =======================================
 FIN FICHERO >> ./backend/Dockerfile
 =======================================
@@ -2149,29 +2198,23 @@ FIN FICHERO >> ./backend/Dockerfile
 =======================================
 INICIO FICHERO >> ./backend/index.js
 =======================================
-// Servidor express principal
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const app = express();
+const db = require('./lib/db');
+const users = require('./routes/users');
+const products = require('./routes/products');
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/products', require('./api/products'));
+app.use('/api/users', users);
+app.use('/api/products', products);
 
-// Ping
-app.get('/api/ping', (_, res) => res.json({ pong: true }));
-
-// Frontend en producción
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.get('*', (_, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
+// Iniciar servidor
+const PORT = 3001;
 app.listen(PORT, () => {
-  console.log(`✅ Backend escuchando en http://localhost:${PORT}`);
+  console.log(`Backend API running on http://localhost:${PORT}`);
 });
 =======================================
 FIN FICHERO >> ./backend/index.js
@@ -2195,6 +2238,43 @@ INICIO FICHERO >> ./backend/package.json
 }
 =======================================
 FIN FICHERO >> ./backend/package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/lib/db.js
+=======================================
+const Database = require('better-sqlite3');
+const fs = require('fs');
+const path = require('path');
+
+const dbPath = path.join(__dirname, '../../data/app.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
+const db = new Database(dbPath);
+
+// Crear tabla users
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT DEFAULT 'user'
+  );
+`);
+
+// Crear tabla products
+db.exec(`
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    stock INTEGER DEFAULT 0
+  );
+`);
+
+module.exports = db;
+=======================================
+FIN FICHERO >> ./backend/lib/db.js
 =======================================
 
 =======================================
@@ -2294,6 +2374,113 @@ INICIO FICHERO >> ./backend/data/users.json
 ]
 =======================================
 FIN FICHERO >> ./backend/data/users.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/products.js
+=======================================
+const express = require('express');
+const db = require('../lib/db');
+const router = express.Router();
+
+router.get('/', (req, res) => {
+  const products = db.prepare('SELECT * FROM products').all();
+  res.json(products);
+});
+
+router.post('/', (req, res) => {
+  const { name, price, stock } = req.body;
+  const stmt = db.prepare('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)');
+  const info = stmt.run(name, price, stock);
+  res.json({ id: info.lastInsertRowid });
+});
+
+router.put('/:id', (req, res) => {
+  const { name, price, stock } = req.body;
+  const stmt = db.prepare('UPDATE products SET name=?, price=?, stock=? WHERE id=?');
+  stmt.run(name, price, stock, req.params.id);
+  res.json({ updated: true });
+});
+
+router.delete('/:id', (req, res) => {
+  db.prepare('DELETE FROM products WHERE id=?').run(req.params.id);
+  res.json({ deleted: true });
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/products.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/users.js
+=======================================
+const express = require('express');
+const router = express.Router();
+const db = require('../database');
+
+// Obtener todos los usuarios
+router.get('/', (req, res) => {
+  db.all('SELECT * FROM users', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// Crear nuevo usuario
+router.post('/', (req, res) => {
+  const { name, email } = req.body;
+  db.run('INSERT INTO users (name, email) VALUES (?, ?)', [name, email], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID, name, email });
+  });
+});
+
+// Actualizar usuario
+router.put('/:id', (req, res) => {
+  const { name, email } = req.body;
+  const { id } = req.params;
+  db.run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id, name, email });
+  });
+});
+
+// Eliminar usuario
+router.delete('/:id', (req, res) => {
+  db.run('DELETE FROM users WHERE id = ?', [req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: req.params.id });
+  });
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/users.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/stats.js
+=======================================
+const express = require("express");
+const router = express.Router();
+const db = require("../db");
+
+router.get("/", async (req, res) => {
+  const totalUsers = await db("users").count("id as count").first();
+  const totalProducts = await db("products").count("id as count").first();
+  const totalStock = await db("products").sum("stock as total").first();
+
+  res.json({
+    totalUsers: totalUsers.count,
+    totalProducts: totalProducts.count,
+    totalStock: totalStock.total || 0,
+  });
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/stats.js
 =======================================
 
 =======================================
