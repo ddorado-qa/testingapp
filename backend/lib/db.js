@@ -1,30 +1,12 @@
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+// Conexión PG con pool
+const { Pool } = require('pg');
 
-const dbPath = path.join(__dirname, '../../data/app.db');
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://qa:qapass@postgres:5432/qaapp',
+});
 
-const db = new Database(dbPath);
+async function query(text, params) {
+  return pool.query(text, params);
+}
 
-// Crear tabla users
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    role TEXT DEFAULT 'user'
-  );
-`);
-
-// Crear tabla products
-db.exec(`
-  CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    price REAL NOT NULL,
-    stock INTEGER DEFAULT 0
-  );
-`);
-
-module.exports = db;
+module.exports = { query, pool };

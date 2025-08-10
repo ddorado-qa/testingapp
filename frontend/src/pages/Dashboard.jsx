@@ -1,27 +1,19 @@
 import { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalProducts: 0,
-    totalStock: 0,
-  });
+  const [stats, setStats] = useState({ totalUsers: 0, totalProducts: 0, totalStock: 0 });
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/stats`);
-      const data = await res.json();
-      setStats(data);
-    };
-    fetchStats();
+    fetch(`${API}/stats`).then(r=>r.json()).then(setStats).catch(()=>{});
   }, []);
 
   return (
-    <div>
-      <h2>Dashboard</h2>
-      <p>Total Users: {stats.totalUsers}</p>
-      <p>Total Products: {stats.totalProducts}</p>
-      <p>Total Stock: {stats.totalStock}</p>
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Dashboard</h2>
+      <div>Total Users: {stats.totalUsers}</div>
+      <div>Total Products: {stats.totalProducts}</div>
+      <div>Total Stock: {stats.totalStock}</div>
     </div>
   );
 }

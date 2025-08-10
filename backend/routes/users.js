@@ -1,40 +1,61 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const db = require('../lib/db');
 
-// Obtener todos los usuarios
-router.get('/', (req, res) => {
-  db.all('SELECT * FROM users', [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+// GET /api/users
+router.get('/', async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name, email, role FROM users ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /api/users error', err);
+    res.status(500).json({ error: 'DB error' });
+  }
 });
 
-// Crear nuevo usuario
-router.post('/', (req, res) => {
-  const { name, email } = req.body;
-  db.run('INSERT INTO users (name, email) VALUES (?, ?)', [name, email], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID, name, email });
-  });
+// POST /api/users
+router.post('/', async (req, res) => {
+  const { name, email, role } = req.body;
+  if (!name || !email) return res.status(400).json({ error: 'Missing fields' });
+  try {
+    const result = await db.query(
+      'INSERT INTO users (name, email, role) VALUES ($1, $2, $3) RETURNING id, name, email, role',
+      [name, email, role || 'user']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('POST /api/users error', err);
+    res.status(500).json({ error: 'DB insert error' });
+  }
 });
 
-// Actualizar usuario
-router.put('/:id', (req, res) => {
-  const { name, email } = req.body;
+// PUT /api/users/:id
+router.put('/:id', async (req, res) => {
+  const { name, email, role } = req.body;
   const { id } = req.params;
-  db.run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id, name, email });
-  });
+  try {
+    const result = await db.query(
+      'UPDATE users SET name=$1, email=$2, role=$3 WHERE id=$4 RETURNING id, name, email, role',
+      [name, email, role || 'user', id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('PUT /api/users/:id error', err);
+    res.status(500).json({ error: 'DB update error' });
+  }
 });
 
-// Eliminar usuario
-router.delete('/:id', (req, res) => {
-  db.run('DELETE FROM users WHERE id = ?', [req.params.id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ deleted: req.params.id });
-  });
+// DELETE /api/users/:id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM users WHERE id=$1', [id]);
+    res.status(204).end();
+  } catch (err) {
+    console.error('DELETE /api/users/:id error', err);
+    res.status(500).json({ error: 'DB delete error' });
+  }
 });
 
 module.exports = router;

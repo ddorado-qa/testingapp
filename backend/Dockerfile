@@ -1,25 +1,20 @@
-# Usamos imagen compatible con sqlite3 y node-gyp
+# Backend: Node (Debian) - fiable para compilar dependencias nativas si hiciera falta
 FROM node:20-bullseye
 
-# Instala dependencias necesarias para compilar binarios nativos
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-# Copiamos los archivos de dependencias primero
+# Copiamos package.json antes para cachear npm install
 COPY package*.json ./
 
 # Instalamos dependencias
-RUN npm install
+RUN npm install --no-audit --no-fund
 
-# Creamos el volumen para node_modules para persistencia interna
+# Protegemos node_modules dentro del contenedor para evitar ser pisado por volumen del host
 VOLUME [ "/app/node_modules" ]
 
 # Copiamos el resto del código
 COPY . .
 
 EXPOSE 3001
+
 CMD ["npm", "start"]

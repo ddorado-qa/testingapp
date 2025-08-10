@@ -1,15 +1,24 @@
-const express = require("express");
-const cors = require("cors");
+// Servidor Express (backend) - conecta con Postgres vía pg
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+
+const usersRouter = require('./routes/users');
+const productsRouter = require('./routes/products');
+const statsRouter = require('./routes/stats');
+
 const app = express();
-const port = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/users", require("./routes/users"));
-app.use("/api/products", require("./routes/products"));
-app.use("/api/stats", require("./routes/stats"));
+app.use('/api/users', usersRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/stats', statsRouter);
 
-app.listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port}`);
+app.get('/api/ping', (_, res) => res.json({ pong: true }));
+
+app.listen(PORT, () => {
+  console.log(`Backend API running on http://localhost:${PORT}`);
 });

@@ -1,127 +1,353 @@
 =======================================
-INICIO FICHERO >> ./frontend/.env
+INICIO FICHERO >> ./docker-compose.yml
 =======================================
-VITE_API_URL=http://backend:3001/api
+# Orquesta Postgres + backend + frontend
+version: '3.9'
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qa
+      POSTGRES_PASSWORD: qapass
+      POSTGRES_DB: qaapp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://qa:qapass@postgres:5432/qaapp
+    volumes:
+      - ./backend:/app:delegated
+      - /app/node_modules
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:3001/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
 =======================================
-FIN FICHERO >> ./frontend/.env
+FIN FICHERO >> ./docker-compose.yml
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/pages/Users.jsx
+INICIO FICHERO >> ./db/init.sql
 =======================================
-import { useEffect, useState } from "react";
+-- Inicialización de la BBDD (se ejecuta la 1ª vez)
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL DEFAULT 'user'
+);
 
-export default function Users() {
-  const [users, setUsers] = useState([]);
-  const [newUser, setNewUser] = useState({ name: "", email: "" });
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  price NUMERIC NOT NULL DEFAULT 0,
+  stock INTEGER NOT NULL DEFAULT 0
+);
 
-  const fetchUsers = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/users`);
-    const data = await res.json();
-    setUsers(data);
-  };
+-- Datos de ejemplo
+INSERT INTO users (name, email, role) VALUES
+  ('Alice', 'alice@example.com', 'admin'),
+  ('Bob', 'bob@example.com', 'user')
+ON CONFLICT DO NOTHING;
 
-  const addUser = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newUser),
-    });
-    setNewUser({ name: "", email: "" });
-    fetchUsers();
-  };
+INSERT INTO products (name, price, stock) VALUES
+  ('Widget A', 9.99, 10),
+  ('Widget B', 19.99, 5)
+ON CONFLICT DO NOTHING;
+=======================================
+FIN FICHERO >> ./db/init.sql
+=======================================
 
-  const deleteUser = async (id) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
-      method: "DELETE",
-    });
-    fetchUsers();
-  };
+=======================================
+INICIO FICHERO >> ./backend/Dockerfile
+=======================================
+# Backend: Node (Debian) - fiable para compilar dependencias nativas si hiciera falta
+FROM node:20-bullseye
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+WORKDIR /app
 
-  return (
-    <div>
-      <h2>Users</h2>
-      <input
-        placeholder="Name"
-        value={newUser.name}
-        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-      />
-      <input
-        placeholder="Email"
-        value={newUser.email}
-        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-      />
-      <button onClick={addUser}>Add</button>
-      <ul>
-        {users.map((u) => (
-          <li key={u.id}>
-            {u.name} ({u.email}){" "}
-            <button onClick={() => deleteUser(u.id)}>Delete</button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+# Copiamos package.json antes para cachear npm install
+COPY package*.json ./
+
+# Instalamos dependencias
+RUN npm install --no-audit --no-fund
+
+# Protegemos node_modules dentro del contenedor para evitar ser pisado por volumen del host
+VOLUME [ "/app/node_modules" ]
+
+# Copiamos el resto del código
+COPY . .
+
+EXPOSE 3001
+
+CMD ["npm", "start"]
+=======================================
+FIN FICHERO >> ./backend/Dockerfile
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/package.json
+=======================================
+{
+  "name": "qaapp-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.21.2",
+    "pg": "^8.11.0"
+  }
 }
 =======================================
-FIN FICHERO >> ./frontend/src/pages/Users.jsx
+FIN FICHERO >> ./backend/package.json
 =======================================
 
 =======================================
-INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
+INICIO FICHERO >> ./backend/.env.example
 =======================================
-import { useEffect, useState } from "react";
+# Copia a .env si quieres variables locales
+DATABASE_URL=postgresql://qa:qapass@postgres:5432/qaapp
+PORT=3001
+=======================================
+FIN FICHERO >> ./backend/.env.example
+=======================================
 
-export default function Dashboard() {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalProducts: 0,
-    totalStock: 0,
-  });
+=======================================
+INICIO FICHERO >> ./backend/server.js
+=======================================
+// Servidor Express (backend) - conecta con Postgres vía pg
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/stats`);
-      const data = await res.json();
-      setStats(data);
-    };
-    fetchStats();
-  }, []);
+const usersRouter = require('./routes/users');
+const productsRouter = require('./routes/products');
+const statsRouter = require('./routes/stats');
 
-  return (
-    <div>
-      <h2>Dashboard</h2>
-      <p>Total Users: {stats.totalUsers}</p>
-      <p>Total Products: {stats.totalProducts}</p>
-      <p>Total Stock: {stats.totalStock}</p>
-    </div>
-  );
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/users', usersRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/stats', statsRouter);
+
+app.get('/api/ping', (_, res) => res.json({ pong: true }));
+
+app.listen(PORT, () => {
+  console.log(`Backend API running on http://localhost:${PORT}`);
+});
+=======================================
+FIN FICHERO >> ./backend/server.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/lib/db.js
+=======================================
+// Conexión PG con pool
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://qa:qapass@postgres:5432/qaapp',
+});
+
+async function query(text, params) {
+  return pool.query(text, params);
 }
+
+module.exports = { query, pool };
 =======================================
-FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
+FIN FICHERO >> ./backend/lib/db.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/users.js
+=======================================
+const express = require('express');
+const router = express.Router();
+const db = require('../lib/db');
+
+// GET /api/users
+router.get('/', async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name, email, role FROM users ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /api/users error', err);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// POST /api/users
+router.post('/', async (req, res) => {
+  const { name, email, role } = req.body;
+  if (!name || !email) return res.status(400).json({ error: 'Missing fields' });
+  try {
+    const result = await db.query(
+      'INSERT INTO users (name, email, role) VALUES ($1, $2, $3) RETURNING id, name, email, role',
+      [name, email, role || 'user']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('POST /api/users error', err);
+    res.status(500).json({ error: 'DB insert error' });
+  }
+});
+
+// PUT /api/users/:id
+router.put('/:id', async (req, res) => {
+  const { name, email, role } = req.body;
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      'UPDATE users SET name=$1, email=$2, role=$3 WHERE id=$4 RETURNING id, name, email, role',
+      [name, email, role || 'user', id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('PUT /api/users/:id error', err);
+    res.status(500).json({ error: 'DB update error' });
+  }
+});
+
+// DELETE /api/users/:id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM users WHERE id=$1', [id]);
+    res.status(204).end();
+  } catch (err) {
+    console.error('DELETE /api/users/:id error', err);
+    res.status(500).json({ error: 'DB delete error' });
+  }
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/users.js
+=======================================
+
+=======================================
+INICIO FICHERO >> ./backend/routes/products.js
+=======================================
+const express = require('express');
+const router = express.Router();
+const db = require('../lib/db');
+
+// GET /api/products
+router.get('/', async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name, price, stock FROM products ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /api/products error', err);
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+// POST /api/products
+router.post('/', async (req, res) => {
+  const { name, price, stock } = req.body;
+  if (!name || price == null) return res.status(400).json({ error: 'Missing fields' });
+  try {
+    const result = await db.query(
+      'INSERT INTO products (name, price, stock) VALUES ($1, $2, $3) RETURNING id, name, price, stock',
+      [name, price, stock || 0]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('POST /api/products error', err);
+    res.status(500).json({ error: 'DB insert error' });
+  }
+});
+
+// PUT /api/products/:id
+router.put('/:id', async (req, res) => {
+  const { name, price, stock } = req.body;
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      'UPDATE products SET name=$1, price=$2, stock=$3 WHERE id=$4 RETURNING id, name, price, stock',
+      [name, price, stock || 0, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('PUT /api/products/:id error', err);
+    res.status(500).json({ error: 'DB update error' });
+  }
+});
+
+// DELETE /api/products/:id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM products WHERE id=$1', [id]);
+    res.status(204).end();
+  } catch (err) {
+    console.error('DELETE /api/products/:id error', err);
+    res.status(500).json({ error: 'DB delete error' });
+  }
+});
+
+module.exports = router;
+=======================================
+FIN FICHERO >> ./backend/routes/products.js
 =======================================
 
 =======================================
 INICIO FICHERO >> ./backend/routes/stats.js
 =======================================
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const db = require("../db");
+const db = require('../lib/db');
 
-router.get("/", async (req, res) => {
-  const totalUsers = await db("users").count("id as count").first();
-  const totalProducts = await db("products").count("id as count").first();
-  const totalStock = await db("products").sum("stock as total").first();
-
-  res.json({
-    totalUsers: totalUsers.count,
-    totalProducts: totalProducts.count,
-    totalStock: totalStock.total || 0,
-  });
+router.get('/', async (req, res) => {
+  try {
+    const users = await db.query('SELECT COUNT(*) AS count FROM users');
+    const products = await db.query('SELECT COUNT(*) AS count FROM products');
+    const stock = await db.query('SELECT COALESCE(SUM(stock),0) AS total FROM products');
+    res.json({
+      totalUsers: parseInt(users.rows[0].count, 10),
+      totalProducts: parseInt(products.rows[0].count, 10),
+      totalStock: parseInt(stock.rows[0].total, 10)
+    });
+  } catch (err) {
+    console.error('GET /api/stats error', err);
+    res.status(500).json({ error: 'DB error' });
+  }
 });
 
 module.exports = router;
@@ -130,30 +356,9 @@ FIN FICHERO >> ./backend/routes/stats.js
 =======================================
 
 =======================================
-INICIO FICHERO >> ./backend/server.js
-=======================================
-const express = require("express");
-const cors = require("cors");
-const app = express();
-const port = 3001;
-
-app.use(cors());
-app.use(express.json());
-
-app.use("/api/users", require("./routes/users"));
-app.use("/api/products", require("./routes/products"));
-app.use("/api/stats", require("./routes/stats"));
-
-app.listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port}`);
-});
-=======================================
-FIN FICHERO >> ./backend/server.js
-=======================================
-
-=======================================
 INICIO FICHERO >> ./frontend/Dockerfile
 =======================================
+# Frontend: Vite + React
 FROM node:20-alpine
 WORKDIR /app
 
@@ -163,24 +368,233 @@ RUN npm install
 COPY . .
 
 EXPOSE 5173
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host"]
 =======================================
 FIN FICHERO >> ./frontend/Dockerfile
 =======================================
 
 =======================================
-INICIO FICHERO >> ./backend/Dockerfile
+INICIO FICHERO >> ./frontend/.env
 =======================================
-FROM node:20-alpine
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-
-EXPOSE 3001
-CMD ["npm", "start"]
+VITE_API_URL=http://backend:3001/api
 =======================================
-FIN FICHERO >> ./backend/Dockerfile
+FIN FICHERO >> ./frontend/.env
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/package.json
+=======================================
+{
+  "name": "qaapp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.12.1",
+    "chart.js": "^4.3.0",
+    "react-chartjs-2": "^5.2.0"
+  },
+  "devDependencies": {
+    "vite": "^4.3.9",
+    "@vitejs/plugin-react": "^4.0.0",
+    "tailwindcss": "^3.3.2",
+    "postcss": "^8.4.24",
+    "autoprefixer": "^10.4.14"
+  }
+}
+=======================================
+FIN FICHERO >> ./frontend/package.json
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+import { useEffect, useState } from "react";
+
+export default function Users() {
+  const [users, setUsers] = useState([]);
+  const [form, setForm] = useState({ name: "", email: "", role: "user" });
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+
+  const fetchUsers = async () => {
+    const res = await fetch(`${API}/users`);
+    const data = await res.json();
+    setUsers(data);
+  };
+
+  const save = async () => {
+    if (!form.name || !form.email) return;
+    await fetch(`${API}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setForm({ name: "", email: "", role: "user" });
+    fetchUsers();
+  };
+
+  const del = async (id) => {
+    await fetch(`${API}/users/${id}`, { method: "DELETE" });
+    fetchUsers();
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Users</h2>
+      <div className="mb-4 flex gap-2">
+        <input value={form.name} onChange={(e)=>setForm({...form, name: e.target.value})} placeholder="Name" />
+        <input value={form.email} onChange={(e)=>setForm({...form, email: e.target.value})} placeholder="Email" />
+        <select value={form.role} onChange={(e)=>setForm({...form, role: e.target.value})}>
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+        <button onClick={save} className="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
+      </div>
+
+      <table className="w-full border">
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+        <tbody>
+          {users.map(u=>(
+            <tr key={u.id}>
+              <td className="border px-2 py-1">{u.id}</td>
+              <td className="border px-2 py-1">{u.name}</td>
+              <td className="border px-2 py-1">{u.email}</td>
+              <td className="border px-2 py-1">{u.role}</td>
+              <td className="border px-2 py-1">
+                <button onClick={()=>del(u.id)} className="text-red-600">Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Users.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Products.jsx
+=======================================
+import { useEffect, useState } from "react";
+
+export default function Products() {
+  const [products, setProducts] = useState([]);
+  const [form, setForm] = useState({ name: "", price: 0, stock: 0 });
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+
+  const fetchProducts = async () => {
+    const res = await fetch(`${API}/products`);
+    const data = await res.json();
+    setProducts(data);
+  };
+
+  const save = async () => {
+    if (!form.name) return;
+    await fetch(`${API}/products`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setForm({ name: "", price: 0, stock: 0 });
+    fetchProducts();
+  };
+
+  const del = async (id) => {
+    await fetch(`${API}/products/${id}`, { method: "DELETE" });
+    fetchProducts();
+  };
+
+  useEffect(() => { fetchProducts(); }, []);
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Products</h2>
+      <div className="mb-4 flex gap-2">
+        <input value={form.name} onChange={(e)=>setForm({...form, name: e.target.value})} placeholder="Name" />
+        <input type="number" value={form.price} onChange={(e)=>setForm({...form, price: parseFloat(e.target.value)})} placeholder="Price" />
+        <input type="number" value={form.stock} onChange={(e)=>setForm({...form, stock: parseInt(e.target.value||0)})} placeholder="Stock" />
+        <button onClick={save} className="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
+      </div>
+
+      <table className="w-full border">
+        <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead>
+        <tbody>
+          {products.map(p=>(
+            <tr key={p.id}>
+              <td className="border px-2 py-1">{p.id}</td>
+              <td className="border px-2 py-1">{p.name}</td>
+              <td className="border px-2 py-1">{p.price}</td>
+              <td className="border px-2 py-1">{p.stock}</td>
+              <td className="border px-2 py-1"><button onClick={()=>del(p.id)} className="text-red-600">Delete</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Products.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+import { useEffect, useState } from "react";
+
+export default function Dashboard() {
+  const [stats, setStats] = useState({ totalUsers: 0, totalProducts: 0, totalStock: 0 });
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+
+  useEffect(() => {
+    fetch(`${API}/stats`).then(r=>r.json()).then(setStats).catch(()=>{});
+  }, []);
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Dashboard</h2>
+      <div>Total Users: {stats.totalUsers}</div>
+      <div>Total Products: {stats.totalProducts}</div>
+      <div>Total Stock: {stats.totalStock}</div>
+    </div>
+  );
+}
+=======================================
+FIN FICHERO >> ./frontend/src/pages/Dashboard.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./README.md
+=======================================
+# QA App (Postgres edition)
+
+Stack: frontend (Vite React) + backend (Express + pg) + postgres (Docker)
+
+Levantar:
+1. Borrar volúmenes antiguos (importante para reinicialización):
+   ```
+   docker-compose down -v
+   ```
+2. Reconstruir e iniciar:
+   ```
+   docker-compose build --no-cache
+   docker-compose up --force-recreate
+   ```
+
+Frontend: http://localhost:5173  
+Backend API: http://localhost:3001/api
+=======================================
+FIN FICHERO >> ./README.md
 =======================================
