@@ -8,8 +8,8 @@ export async function createAndDeleteOrderFlow(page: Page) {
   const initialCount = await ordersPage.getOrdersCount();
 
   await ordersPage.createOrder('Test Customer', 'Test Product', 5, 'Pending');
-  await expect(ordersPage.orderRows).toHaveCount(initialCount + 1);
+  await expect(ordersPage.hl.get('orders.orderRows')).toHaveCount(initialCount + 1);
 
   await ordersPage.deleteOrderByIndex(0);
-  await expect(ordersPage.orderRows).toHaveCount(initialCount);
+  await expect(ordersPage.hl.get('orders.orderRows')).toHaveCount(initialCount);
 }

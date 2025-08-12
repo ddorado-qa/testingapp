@@ -1,29 +1,101 @@
 =======================================
-INICIO FICHERO >> ./tests/pages/base.page.ts
+INICIO FICHERO >> ./tests/lib/locator_map.ts
 =======================================
-// BasePage centraliza métodos comunes entre páginas
-import { Page, Locator } from '@playwright/test';
+// Mapa central de selectores
+export const locatorMap: Record<string, string> = {
+  'users.nameInput': 'input[placeholder="Name"]',
+  'users.emailInput': 'input[placeholder="Email"]',
+  'users.roleSelect': 'select',
+  'users.addButton': 'button:has-text("Add")',
+  'users.userRows': 'table tbody tr',
 
-export class BasePage {
+  'orders.customerInput': 'input[placeholder="Customer"]',
+  'orders.productInput': 'input[placeholder="Product"]',
+  'orders.quantityInput': 'input[placeholder="Quantity"]',
+  'orders.statusInput': 'input[placeholder="Status"]',
+  'orders.addButton': 'button:has-text("Add Order")',
+  'orders.orderRows': 'table tbody tr'
+};
+=======================================
+FIN FICHERO >> ./tests/lib/locator_map.ts
+=======================================
+
+=======================================
+INICIO FICHERO >> ./tests/lib/heal_locators.ts
+=======================================
+import { Page, Locator } from '@playwright/test';
+import { locatorMap } from './locator_map';
+
+export class HealLocator {
   readonly page: Page;
+
   constructor(page: Page) {
     this.page = page;
   }
 
+  get(key: string): Locator {
+    const selector = locatorMap[key];
+    if (!selector) throw new Error(`Selector no encontrado para clave: ${key}`);
+    return this.page.locator(selector);
+  }
+
+  async safeClick(key: string) {
+    const loc = this.get(key);
+    try {
+      await loc.click();
+    } catch {
+      await this.recoverSelector(key, 'click');
+    }
+  }
+
+  async safeFill(key: string, value: string) {
+    const loc = this.get(key);
+    try {
+      await loc.fill(value);
+    } catch {
+      await this.recoverSelector(key, 'fill', value);
+    }
+  }
+
+  async recoverSelector(key: string, action: string, value?: string) {
+    console.warn(`⚠ Selector roto: ${key}. Intentando recuperación...`);
+
+    // Intento simple: buscar por texto aproximado
+    const approxText = key.split('.').pop()?.replace(/Input|Button|Select|Rows/gi, '');
+    const candidate = this.page.locator(`text=${approxText}`);
+
+    if (await candidate.count() > 0) {
+      console.info(`✅ Recuperado dinámicamente: ${key} → text=${approxText}`);
+      locatorMap[key] = `text=${approxText}`;
+      if (action === 'click') await candidate.first().click();
+      if (action === 'fill' && value) await candidate.first().fill(value);
+      return;
+    }
+
+    throw new Error(`No se pudo recuperar selector para: ${key}`);
+  }
+}
+=======================================
+FIN FICHERO >> ./tests/lib/heal_locators.ts
+=======================================
+
+=======================================
+INICIO FICHERO >> ./tests/pages/base.page.ts
+=======================================
+import { Page } from '@playwright/test';
+import { HealLocator } from '../lib/heal_locators';
+
+export class BasePage {
+  readonly page: Page;
+  readonly hl: HealLocator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.hl = new HealLocator(page);
+  }
+
   async goto(path: string) {
     await this.page.goto(path);
-  }
-
-  async fillField(locator: Locator, value: string) {
-    await locator.fill(value);
-  }
-
-  async clickButton(locator: Locator) {
-    await locator.click();
-  }
-
-  async expectVisible(locator: Locator) {
-    await locator.waitFor({ state: 'visible' });
   }
 }
 =======================================
@@ -33,43 +105,28 @@ FIN FICHERO >> ./tests/pages/base.page.ts
 =======================================
 INICIO FICHERO >> ./tests/pages/users.page.ts
 =======================================
-import { Locator, Page } from '@playwright/test';
 import { BasePage } from './base.page';
 
 export class UsersPage extends BasePage {
-  readonly nameInput: Locator;
-  readonly emailInput: Locator;
-  readonly roleSelect: Locator;
-  readonly addButton: Locator;
-  readonly userRows: Locator;
-
-  constructor(page: Page) {
-    super(page);
-    this.nameInput = page.locator('input[placeholder="Name"]');
-    this.emailInput = page.locator('input[placeholder="Email"]');
-    this.roleSelect = page.locator('select');
-    this.addButton = page.locator('button:has-text("Add")');
-    this.userRows = page.locator('table tbody tr');
-  }
-
   async goto() {
     await super.goto('/users');
   }
 
   async createUser(name: string, email: string, role: string = 'user') {
-    await this.fillField(this.nameInput, name);
-    await this.fillField(this.emailInput, email);
-    await this.roleSelect.selectOption(role);
-    await this.clickButton(this.addButton);
+    await this.hl.safeFill('users.nameInput', name);
+    await this.hl.safeFill('users.emailInput', email);
+    await this.page.selectOption('select', role);
+    await this.hl.safeClick('users.addButton');
   }
 
   async deleteUserByIndex(index: number) {
-    const deleteBtn = this.userRows.nth(index).locator('button:has-text("Delete")');
+    const rows = this.hl.get('users.userRows');
+    const deleteBtn = rows.nth(index).locator('button:has-text("Delete")');
     await deleteBtn.click();
   }
 
   async getUsersCount() {
-    return await this.userRows.count();
+    return await this.hl.get('users.userRows').count();
   }
 }
 =======================================
@@ -79,46 +136,29 @@ FIN FICHERO >> ./tests/pages/users.page.ts
 =======================================
 INICIO FICHERO >> ./tests/pages/orders.page.ts
 =======================================
-import { Locator, Page } from '@playwright/test';
 import { BasePage } from './base.page';
 
 export class OrdersPage extends BasePage {
-  readonly customerInput: Locator;
-  readonly productInput: Locator;
-  readonly quantityInput: Locator;
-  readonly statusInput: Locator;
-  readonly addButton: Locator;
-  readonly orderRows: Locator;
-
-  constructor(page: Page) {
-    super(page);
-    this.customerInput = page.locator('input[placeholder="Customer"]');
-    this.productInput = page.locator('input[placeholder="Product"]');
-    this.quantityInput = page.locator('input[placeholder="Quantity"]');
-    this.statusInput = page.locator('input[placeholder="Status"]');
-    this.addButton = page.locator('button:has-text("Add Order")');
-    this.orderRows = page.locator('table tbody tr');
-  }
-
   async goto() {
     await super.goto('/orders');
   }
 
   async createOrder(customer: string, product: string, quantity: number, status: string) {
-    await this.fillField(this.customerInput, customer);
-    await this.fillField(this.productInput, product);
-    await this.fillField(this.quantityInput, quantity.toString());
-    await this.fillField(this.statusInput, status);
-    await this.clickButton(this.addButton);
+    await this.hl.safeFill('orders.customerInput', customer);
+    await this.hl.safeFill('orders.productInput', product);
+    await this.hl.safeFill('orders.quantityInput', quantity.toString());
+    await this.hl.safeFill('orders.statusInput', status);
+    await this.hl.safeClick('orders.addButton');
   }
 
   async deleteOrderByIndex(index: number) {
-    const deleteBtn = this.orderRows.nth(index).locator('button:has-text("Delete")');
+    const rows = this.hl.get('orders.orderRows');
+    const deleteBtn = rows.nth(index).locator('button:has-text("Delete")');
     await deleteBtn.click();
   }
 
   async getOrdersCount() {
-    return await this.orderRows.count();
+    return await this.hl.get('orders.orderRows').count();
   }
 }
 =======================================
@@ -138,10 +178,10 @@ export async function createAndDeleteUserFlow(page: Page) {
   const initialCount = await usersPage.getUsersCount();
 
   await usersPage.createUser('Test User', 'test@example.com');
-  await expect(usersPage.userRows).toHaveCount(initialCount + 1);
+  await expect(usersPage.hl.get('users.userRows')).toHaveCount(initialCount + 1);
 
   await usersPage.deleteUserByIndex(0);
-  await expect(usersPage.userRows).toHaveCount(initialCount);
+  await expect(usersPage.hl.get('users.userRows')).toHaveCount(initialCount);
 }
 =======================================
 FIN FICHERO >> ./tests/flows/user.flows.ts
@@ -160,39 +200,13 @@ export async function createAndDeleteOrderFlow(page: Page) {
   const initialCount = await ordersPage.getOrdersCount();
 
   await ordersPage.createOrder('Test Customer', 'Test Product', 5, 'Pending');
-  await expect(ordersPage.orderRows).toHaveCount(initialCount + 1);
+  await expect(ordersPage.hl.get('orders.orderRows')).toHaveCount(initialCount + 1);
 
   await ordersPage.deleteOrderByIndex(0);
-  await expect(ordersPage.orderRows).toHaveCount(initialCount);
+  await expect(ordersPage.hl.get('orders.orderRows')).toHaveCount(initialCount);
 }
 =======================================
 FIN FICHERO >> ./tests/flows/order.flows.ts
-=======================================
-
-=======================================
-INICIO FICHERO >> ./tests/e2e/users.spec.ts
-=======================================
-import { test } from '@playwright/test';
-import { createAndDeleteUserFlow } from '../flows/user.flows';
-
-test('Crear y eliminar usuario', async ({ page }) => {
-  await createAndDeleteUserFlow(page);
-});
-=======================================
-FIN FICHERO >> ./tests/e2e/users.spec.ts
-=======================================
-
-=======================================
-INICIO FICHERO >> ./tests/e2e/orders.spec.ts
-=======================================
-import { test } from '@playwright/test';
-import { createAndDeleteOrderFlow } from '../flows/order.flows';
-
-test('Crear y eliminar pedido', async ({ page }) => {
-  await createAndDeleteOrderFlow(page);
-});
-=======================================
-FIN FICHERO >> ./tests/e2e/orders.spec.ts
 =======================================
 
 =======================================
@@ -202,7 +216,7 @@ import { test } from '@playwright/test';
 import { createAndDeleteUserFlow } from '../flows/user.flows';
 import { createAndDeleteOrderFlow } from '../flows/order.flows';
 
-test('Flujo completo: crear usuario y pedido', async ({ page }) => {
+test('Flujo completo con autocuración', async ({ page }) => {
   await createAndDeleteUserFlow(page);
   await createAndDeleteOrderFlow(page);
 });

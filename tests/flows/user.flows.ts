@@ -8,8 +8,8 @@ export async function createAndDeleteUserFlow(page: Page) {
   const initialCount = await usersPage.getUsersCount();
 
   await usersPage.createUser('Test User', 'test@example.com');
-  await expect(usersPage.userRows).toHaveCount(initialCount + 1);
+  await expect(usersPage.hl.get('users.userRows')).toHaveCount(initialCount + 1);
 
   await usersPage.deleteUserByIndex(0);
-  await expect(usersPage.userRows).toHaveCount(initialCount);
+  await expect(usersPage.hl.get('users.userRows')).toHaveCount(initialCount);
 }
