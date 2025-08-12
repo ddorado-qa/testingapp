@@ -13,3 +13,6 @@ build:
 
 stop:
 	docker-compose down
+
+depack:
+	python d.py code      

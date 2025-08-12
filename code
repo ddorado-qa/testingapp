@@ -1,124 +1,211 @@
 =======================================
-INICIO FICHERO >> ./docker-compose.yml
+INICIO FICHERO >> ./tests/pages/base.page.ts
 =======================================
-services:
-  postgres:
-    image: postgres:15
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: qa
-      POSTGRES_PASSWORD: qapass
-      POSTGRES_DB: qaapp
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5432:5432"
+// BasePage centraliza métodos comunes entre páginas
+import { Page, Locator } from '@playwright/test';
 
-  backend:
-    build:
-      context: ./backend
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://qa:qapass@postgres:5432/qaapp
-    volumes:
-      - ./backend:/app:delegated
-      - /app/node_modules
-    depends_on:
-      postgres:
-        condition: service_started
-    command: >
-      sh -c "until pg_isready -h postgres -p 5432; do echo 'Esperando a Postgres...'; sleep 1; done &&
-      npm start"
+export class BasePage {
+  readonly page: Page;
+  constructor(page: Page) {
+    this.page = page;
+  }
 
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://backend:3001/api
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host
-    depends_on:
-      - backend
+  async goto(path: string) {
+    await this.page.goto(path);
+  }
 
-volumes:
-  pgdata:
-networks:
-  default:
-    driver: bridge
+  async fillField(locator: Locator, value: string) {
+    await locator.fill(value);
+  }
+
+  async clickButton(locator: Locator) {
+    await locator.click();
+  }
+
+  async expectVisible(locator: Locator) {
+    await locator.waitFor({ state: 'visible' });
+  }
+}
 =======================================
-FIN FICHERO >> ./docker-compose.yml
+FIN FICHERO >> ./tests/pages/base.page.ts
 =======================================
+
 =======================================
-INICIO FICHERO >> ./backend/Dockerfile
+INICIO FICHERO >> ./tests/pages/users.page.ts
 =======================================
-# Backend: Node (Debian) - buena para dependencias nativas
-FROM node:20-bullseye
+import { Locator, Page } from '@playwright/test';
+import { BasePage } from './base.page';
 
-WORKDIR /app
+export class UsersPage extends BasePage {
+  readonly nameInput: Locator;
+  readonly emailInput: Locator;
+  readonly roleSelect: Locator;
+  readonly addButton: Locator;
+  readonly userRows: Locator;
 
-# Copiamos package.json antes para aprovechar cache de Docker
-COPY package*.json ./
+  constructor(page: Page) {
+    super(page);
+    this.nameInput = page.locator('input[placeholder="Name"]');
+    this.emailInput = page.locator('input[placeholder="Email"]');
+    this.roleSelect = page.locator('select');
+    this.addButton = page.locator('button:has-text("Add")');
+    this.userRows = page.locator('table tbody tr');
+  }
 
-# Instalamos dependencias sin auditoría ni prompts
-RUN npm install --no-audit --no-fund
+  async goto() {
+    await super.goto('/users');
+  }
 
-# Protegemos node_modules para que no se sobreescriba con bind mount
-VOLUME [ "/app/node_modules" ]
+  async createUser(name: string, email: string, role: string = 'user') {
+    await this.fillField(this.nameInput, name);
+    await this.fillField(this.emailInput, email);
+    await this.roleSelect.selectOption(role);
+    await this.clickButton(this.addButton);
+  }
 
-# Copiamos el resto del código
-COPY . .
+  async deleteUserByIndex(index: number) {
+    const deleteBtn = this.userRows.nth(index).locator('button:has-text("Delete")');
+    await deleteBtn.click();
+  }
 
-EXPOSE 3001
-
-# Comando por defecto
-CMD ["npm", "start"]
+  async getUsersCount() {
+    return await this.userRows.count();
+  }
+}
 =======================================
-FIN FICHERO >> ./backend/Dockerfile
+FIN FICHERO >> ./tests/pages/users.page.ts
 =======================================
+
 =======================================
-INICIO FICHERO >> ./frontend/Dockerfile
+INICIO FICHERO >> ./tests/pages/orders.page.ts
 =======================================
-# Frontend: Vite + React
-FROM node:20-alpine
+import { Locator, Page } from '@playwright/test';
+import { BasePage } from './base.page';
 
-WORKDIR /app
+export class OrdersPage extends BasePage {
+  readonly customerInput: Locator;
+  readonly productInput: Locator;
+  readonly quantityInput: Locator;
+  readonly statusInput: Locator;
+  readonly addButton: Locator;
+  readonly orderRows: Locator;
 
-# Copiamos package.json y package-lock.json
-COPY package*.json ./
+  constructor(page: Page) {
+    super(page);
+    this.customerInput = page.locator('input[placeholder="Customer"]');
+    this.productInput = page.locator('input[placeholder="Product"]');
+    this.quantityInput = page.locator('input[placeholder="Quantity"]');
+    this.statusInput = page.locator('input[placeholder="Status"]');
+    this.addButton = page.locator('button:has-text("Add Order")');
+    this.orderRows = page.locator('table tbody tr');
+  }
 
-RUN npm install --no-audit --no-fund
+  async goto() {
+    await super.goto('/orders');
+  }
 
-COPY . .
+  async createOrder(customer: string, product: string, quantity: number, status: string) {
+    await this.fillField(this.customerInput, customer);
+    await this.fillField(this.productInput, product);
+    await this.fillField(this.quantityInput, quantity.toString());
+    await this.fillField(this.statusInput, status);
+    await this.clickButton(this.addButton);
+  }
 
-EXPOSE 5173
+  async deleteOrderByIndex(index: number) {
+    const deleteBtn = this.orderRows.nth(index).locator('button:has-text("Delete")');
+    await deleteBtn.click();
+  }
 
-CMD ["npm", "run", "dev", "--", "--host"]
+  async getOrdersCount() {
+    return await this.orderRows.count();
+  }
+}
 =======================================
-FIN FICHERO >> ./frontend/Dockerfile
+FIN FICHERO >> ./tests/pages/orders.page.ts
 =======================================
+
 =======================================
-INICIO FICHERO >> ./Dockerfile
+INICIO FICHERO >> ./tests/flows/user.flows.ts
 =======================================
-# Si este es un servidor Node independiente
-FROM node:18-alpine
+import { Page, expect } from '@playwright/test';
+import { UsersPage } from '../pages/users.page';
 
-WORKDIR /app
+export async function createAndDeleteUserFlow(page: Page) {
+  const usersPage = new UsersPage(page);
 
-COPY package*.json ./
-RUN npm install --no-audit --no-fund
+  await usersPage.goto();
+  const initialCount = await usersPage.getUsersCount();
 
-COPY . .
+  await usersPage.createUser('Test User', 'test@example.com');
+  await expect(usersPage.userRows).toHaveCount(initialCount + 1);
 
-EXPOSE 3000
-
-CMD ["node", "server/server.js"]
+  await usersPage.deleteUserByIndex(0);
+  await expect(usersPage.userRows).toHaveCount(initialCount);
+}
 =======================================
-FIN FICHERO >> ./Dockerfile
+FIN FICHERO >> ./tests/flows/user.flows.ts
+=======================================
+
+=======================================
+INICIO FICHERO >> ./tests/flows/order.flows.ts
+=======================================
+import { Page, expect } from '@playwright/test';
+import { OrdersPage } from '../pages/orders.page';
+
+export async function createAndDeleteOrderFlow(page: Page) {
+  const ordersPage = new OrdersPage(page);
+
+  await ordersPage.goto();
+  const initialCount = await ordersPage.getOrdersCount();
+
+  await ordersPage.createOrder('Test Customer', 'Test Product', 5, 'Pending');
+  await expect(ordersPage.orderRows).toHaveCount(initialCount + 1);
+
+  await ordersPage.deleteOrderByIndex(0);
+  await expect(ordersPage.orderRows).toHaveCount(initialCount);
+}
+=======================================
+FIN FICHERO >> ./tests/flows/order.flows.ts
+=======================================
+
+=======================================
+INICIO FICHERO >> ./tests/e2e/users.spec.ts
+=======================================
+import { test } from '@playwright/test';
+import { createAndDeleteUserFlow } from '../flows/user.flows';
+
+test('Crear y eliminar usuario', async ({ page }) => {
+  await createAndDeleteUserFlow(page);
+});
+=======================================
+FIN FICHERO >> ./tests/e2e/users.spec.ts
+=======================================
+
+=======================================
+INICIO FICHERO >> ./tests/e2e/orders.spec.ts
+=======================================
+import { test } from '@playwright/test';
+import { createAndDeleteOrderFlow } from '../flows/order.flows';
+
+test('Crear y eliminar pedido', async ({ page }) => {
+  await createAndDeleteOrderFlow(page);
+});
+=======================================
+FIN FICHERO >> ./tests/e2e/orders.spec.ts
+=======================================
+
+=======================================
+INICIO FICHERO >> ./tests/e2e/flows.spec.ts
+=======================================
+import { test } from '@playwright/test';
+import { createAndDeleteUserFlow } from '../flows/user.flows';
+import { createAndDeleteOrderFlow } from '../flows/order.flows';
+
+test('Flujo completo: crear usuario y pedido', async ({ page }) => {
+  await createAndDeleteUserFlow(page);
+  await createAndDeleteOrderFlow(page);
+});
+=======================================
+FIN FICHERO >> ./tests/e2e/flows.spec.ts
 =======================================
