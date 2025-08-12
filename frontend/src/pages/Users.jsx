@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", role: "user" });
-  const API = '/api'//import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API = '/api'; // el proxy de Vite lo redirige
 
   const fetchUsers = async () => {
     const res = await fetch(`${API}/users`);

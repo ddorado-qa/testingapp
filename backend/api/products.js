@@ -32,7 +32,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Faltan campos' });
   }
 
-  const stmt = db.prepare('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)');
+  const stmt = db.pool.query('INSERT INTO products (name, price, stock) VALUES (?, ?, ?)');
   stmt.run(name, price, stock, function (err) {
     if (err) return res.status(500).json({ error: 'Error al insertar' });
     res.status(201).json({ id: this.lastID, name, price, stock });
@@ -47,7 +47,7 @@ router.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'Faltan campos' });
   }
 
-  const stmt = db.prepare('UPDATE products SET name = ?, price = ?, stock = ? WHERE id = ?');
+  const stmt = db.pool.query('UPDATE products SET name = ?, price = ?, stock = ? WHERE id = ?');
   stmt.run(name, price, stock, id, function (err) {
     if (err) return res.status(500).json({ error: 'Error al actualizar' });
     if (this.changes === 0) return res.status(404).json({ error: 'No encontrado' });

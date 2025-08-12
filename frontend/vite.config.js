@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://backend:3001', // hostname del backend en Docker
+        target: 'http://backend:3001', // no "backend", sino localhost
         changeOrigin: true
       }
     }

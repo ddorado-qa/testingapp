@@ -1,20 +1,25 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
-import Users from './pages/Users';
+import React from "react";
+import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
+import Users from "./pages/Users";
+import Products from "./pages/Products";
+import Orders from "./pages/Orders";
+import Reports from "./pages/Reports";
 
-function App() {
+export default function App() {
   return (
-    <BrowserRouter>
-      <nav className="p-4 bg-gray-800 text-white flex gap-4">
-        <Link to="/">Dashboard</Link>
-        <Link to="/users">Users</Link>
+    <Router>
+      <nav>
+        <Link to="/">Users</Link> |{" "}
+        <Link to="/products">Products</Link> |{" "}
+        <Link to="/orders">Orders</Link> |{" "}
+        <Link to="/reports">Reports</Link>
       </nav>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/users" element={<Users />} />
+        <Route path="/" element={<Users />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
-
-export default App;

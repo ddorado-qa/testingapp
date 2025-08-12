@@ -1,12 +1,13 @@
+# Si este es un servidor Node independiente
 FROM node:18-alpine
 
 WORKDIR /app
 
-COPY ./server ./server
-COPY ./public ./public
-COPY ./data ./data
+COPY package*.json ./
+RUN npm install --no-audit --no-fund
 
-RUN npm install express fs
+COPY . .
 
 EXPOSE 3000
+
 CMD ["node", "server/server.js"]

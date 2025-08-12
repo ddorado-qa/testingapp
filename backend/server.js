@@ -1,24 +1,32 @@
-// Servidor Express (backend) - conecta con Postgres vía pg
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
 
-const usersRouter = require('./routes/users');
-const productsRouter = require('./routes/products');
-const statsRouter = require('./routes/stats');
+const usersRouter = require("./routes/users");
+const productsRouter = require("./routes/products");
+const ordersRouter = require("./routes/orders");
+const reportsRouter = require("./routes/reports");
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/users', usersRouter);
-app.use('/api/products', productsRouter);
-app.use('/api/stats', statsRouter);
-
-app.get('/api/ping', (_, res) => res.json({ pong: true }));
-
-app.listen(PORT, () => {
-  console.log(`Backend API running on http://localhost:${PORT}`);
+// Rutas API
+app.use("/api/users", usersRouter);
+app.use("/api/products", productsRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/api/reports", reportsRouter);
+/*
+// Static en producción
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+  });
+}
+*/
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend escuchando en puerto ${PORT}`);
 });
