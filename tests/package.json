@@ -1,0 +1,13 @@
+{
+  "name": "qa-dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard para historial de tests y cambios de selectores",
+  "main": "dashboard.js",
+  "scripts": {
+    "start": "node dashboard.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "better-sqlite3": "^9.0.0"
+  }
+}

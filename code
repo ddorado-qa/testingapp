@@ -1,137 +1,55 @@
 =======================================
-INICIO FICHERO >> ./tests/lib/db_logger.ts
+INICIO FICHERO >> ./makefile.dev
 =======================================
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+# Makefile para desarrollo local de QA App
 
-const DB_PATH = path.resolve(__dirname, '../../tests_info.db');
+install:
+	docker compose run --rm backend sh -c "npm install"
+	docker compose run --rm frontend sh -c "npm install"
+	docker compose run --rm dashboard sh -c "npm install"
 
-// Crear DB si no existe
-if (!fs.existsSync(DB_PATH)) {
-  const db = new Database(DB_PATH);
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS selector_changes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      key TEXT NOT NULL,
-      old_selector TEXT NOT NULL,
-      new_selector TEXT NOT NULL,
-      test_file TEXT,
-      occurred_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  db.close();
-}
+dev: build install
+	docker compose up -d
+	docker compose logs -f
 
-export function logSelectorChange(key: string, oldSel: string, newSel: string, testFile: string) {
-  const db = new Database(DB_PATH);
-  const stmt = db.prepare(`
-    INSERT INTO selector_changes (key, old_selector, new_selector, test_file)
-    VALUES (?, ?, ?, ?)
-  `);
-  stmt.run(key, oldSel, newSel, testFile);
-  db.close();
-}
+restart:
+	@echo "🔄 Reiniciando contenedores sin reconstruir..."
+	docker compose down
+	docker compose up -d
+	docker compose logs -f
+    
+build:
+	docker compose build
+
+stop:
+	docker compose down
+
+depack:
+	python d.py code      
+
+cleanAll:
+	docker compose down -v --remove-orphans
+	lsof -t -i tcp:3001 | xargs kill || true
+	docker compose down --volumes
+	rm -rf node_modules package-lock.json
+	docker system prune -af --volumes
+
+# 🚀 Nuevo comando: build + install + up + logs
+dev-all:
+	@echo "🔄 Construyendo imágenes y reinstalando dependencias..."
+	docker compose build --no-cache
+	docker compose run --rm backend sh -c "npm install"
+	docker compose run --rm frontend sh -c "npm install"
+	docker compose run --rm dashboard sh -c "npm install"
+	@echo "🚀 Levantando todos los servicios..."
+	docker compose up -d
+	@echo "📜 Mostrando logs..."
+	docker compose logs -f
+ # ⚡ Arranque rápido sin reconstruir imágenes
+start:
+	@echo "⚡ Arranque rápido con imágenes ya construidas..."
+	docker compose up -d
+	docker compose logs -f
 =======================================
-FIN FICHERO >> ./tests/lib/db_logger.ts
-=======================================
-
-=======================================
-INICIO FICHERO >> ./tests/lib/locator_backups.ts
-=======================================
-// Backups históricos de selectores rotos
-export const locatorBackups: Record<string, string[]> = {};
-=======================================
-FIN FICHERO >> ./tests/lib/locator_backups.ts
-=======================================
-
-=======================================
-INICIO FICHERO >> ./tests/lib/heal_locators.ts
-=======================================
-import { Page, Locator } from '@playwright/test';
-import { locatorMap } from './locator_map';
-import { locatorBackups } from './locator_backups';
-import { logSelectorChange } from './db_logger';
-import fs from 'fs';
-import path from 'path';
-
-export class HealLocator {
-  readonly page: Page;
-
-  constructor(page: Page) {
-    this.page = page;
-  }
-
-  get(key: string): Locator {
-    const selector = locatorMap[key];
-    if (!selector) throw new Error(`Selector no encontrado para clave: ${key}`);
-    return this.page.locator(selector);
-  }
-
-  async safeClick(key: string, testFile: string = '') {
-    try {
-      await this.get(key).click();
-    } catch {
-      await this.recoverSelector(key, 'click', undefined, testFile);
-    }
-  }
-
-  async safeFill(key: string, value: string, testFile: string = '') {
-    try {
-      await this.get(key).fill(value);
-    } catch {
-      await this.recoverSelector(key, 'fill', value, testFile);
-    }
-  }
-
-  async recoverSelector(key: string, action: string, value?: string, testFile: string = '') {
-    const oldSelector = locatorMap[key];
-    console.warn(`⚠ Selector roto: ${key} → ${oldSelector}. Intentando recuperación...`);
-
-    // Intento simple: buscar por texto
-    const approxText = key.split('.').pop()?.replace(/Input|Button|Select|Rows/gi, '');
-    const candidate = this.page.locator(`text=${approxText}`);
-
-    if (await candidate.count() > 0) {
-      const newSelector = `text=${approxText}`;
-      console.info(`✅ Recuperado: ${key} → ${newSelector}`);
-
-      // Guardar en backups
-      if (!locatorBackups[key]) locatorBackups[key] = [];
-      locatorBackups[key].push(oldSelector);
-
-      // Guardar en SQLite
-      logSelectorChange(key, oldSelector, newSelector, testFile);
-
-      // Actualizar locatorMap y persistir en archivo
-      locatorMap[key] = newSelector;
-      this.persistLocatorMap();
-
-      // Persistir backups
-      this.persistLocatorBackups();
-
-      // Ejecutar acción con nuevo selector
-      if (action === 'click') await candidate.first().click();
-      if (action === 'fill' && value) await candidate.first().fill(value);
-
-      return;
-    }
-
-    throw new Error(`No se pudo recuperar selector para: ${key}`);
-  }
-
-  persistLocatorMap() {
-    const mapPath = path.resolve(__dirname, './locator_map.ts');
-    const content = `export const locatorMap: Record<string, string> = ${JSON.stringify(locatorMap, null, 2)};`;
-    fs.writeFileSync(mapPath, content, 'utf-8');
-  }
-
-  persistLocatorBackups() {
-    const backupPath = path.resolve(__dirname, './locator_backups.ts');
-    const content = `export const locatorBackups: Record<string, string[]> = ${JSON.stringify(locatorBackups, null, 2)};`;
-    fs.writeFileSync(backupPath, content, 'utf-8');
-  }
-}
-=======================================
-FIN FICHERO >> ./tests/lib/heal_locators.ts
+FIN FICHERO >> ./makefile.dev
 =======================================
