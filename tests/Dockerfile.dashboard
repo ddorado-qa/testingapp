@@ -1,12 +1,40 @@
-# Dashboard QA selectors
-FROM node:20-alpine
+
+# INICIO FICHERO: packages/qa/Dockerfile
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+  curl gnupg ca-certificates lsb-release \
+  x11vnc fluxbox xterm net-tools git wget unzip \
+  build-essential python3 make gcc g++ \
+  --no-install-recommends && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    node -v && npm -v
+
+    # Dashboard QA selectors
 
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install express better-sqlite3
+RUN npx playwright install --with-deps
 
 COPY . .
 
 EXPOSE 4000
 CMD ["node", "dashboard.js"]
+
+ENV DISPLAY=:1
+EXPOSE 5900
+
+CMD bash -c "\
+  Xvfb :1 -screen 0 1920x1080x24 & \
+  fluxbox & \
+  xterm & \
+  x11vnc -display :1 -forever -nopw -shared -nolisten tcp6 & \
+  tail -f /dev/null"
+# FIN FICHERO
+

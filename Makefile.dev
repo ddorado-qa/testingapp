@@ -1,9 +1,10 @@
-# Makefile para desarrollo local de QA App
+# Makefile para desarrollo local de QA App con Playwright y Dashboard de selectores
 
 install:
 	docker compose run --rm backend sh -c "npm install"
 	docker compose run --rm frontend sh -c "npm install"
 	docker compose run --rm dashboard sh -c "npm install"
+	docker compose run --rm dashboard sh -c "npm install --prefix ./e2e playwright && npx playwright install --with-deps"
 
 dev: build install
 	docker compose up -d
@@ -15,6 +16,12 @@ build:
 stop:
 	docker compose down
 
+restart:
+	@echo "🔄 Reiniciando contenedores sin reconstruir..."
+	docker compose down
+	docker compose up -d
+	docker compose logs -f
+
 depack:
 	python d.py code      
 
@@ -25,19 +32,30 @@ cleanAll:
 	rm -rf node_modules package-lock.json
 	docker system prune -af --volumes
 
-# 🚀 Nuevo comando: build + install + up + logs
+# 🚀 Nuevo comando: build + install + up + logs (build limpio)
 dev-all:
 	@echo "🔄 Construyendo imágenes y reinstalando dependencias..."
 	docker compose build --no-cache
 	docker compose run --rm backend sh -c "npm install"
 	docker compose run --rm frontend sh -c "npm install"
 	docker compose run --rm dashboard sh -c "npm install"
+	docker compose run --rm dashboard sh -c "npm install --prefix ./e2e playwright && npx playwright install --with-deps"
 	@echo "🚀 Levantando todos los servicios..."
 	docker compose up -d
 	@echo "📜 Mostrando logs..."
 	docker compose logs -f
+	
  # ⚡ Arranque rápido sin reconstruir imágenes
 start:
 	@echo "⚡ Arranque rápido con imágenes ya construidas..."
 	docker compose up -d
 	docker compose logs -f
+# 🧪 Ejecutar tests E2E de Playwright
+test-e2e:
+	@echo "🧪 Ejecutando tests E2E con Playwright..."
+	docker compose run --rm dashboard sh -c "cd e2e && npx playwright test"
+
+# 🛠️ Ejecutar autoheal y registrar cambios
+test-autoheal:
+	@echo "🛠️ Ejecutando Autoheal de selectores..."
+	docker compose run --rm dashboard sh -c "node ./autoheal/run_autoheal.js && echo 'Cambios registrados en tests_info.db'"
