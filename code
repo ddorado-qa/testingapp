@@ -1,165 +1,67 @@
 =======================================
-INICIO FICHERO >> ./mfe-shell/src/App.jsx
+INICIO FICHERO >> ./docker-compose.yml
 =======================================
-// Componente React principal del shell que usa iframes para cargar cada MFE por URL
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: qa
+      POSTGRES_PASSWORD: qapass
+      POSTGRES_DB: qaapp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
 
-import React, { useState } from "react";
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+    environment:
+      - DATABASE_URL=postgresql://qa:qapass@postgres:5432/qaapp
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
 
-const routes = {
-  login: "http://localhost:5174",
-  dashboard: "http://localhost:5175",
-  shell: null, // Shell mismo o alguna página base si quieres
-};
+  mfe-shell:
+    container_name: mfe-shell
+    build:
+      context: ./mfe-shell
+    environment:
+      - VITE_BACKEND_URL=http://backend:3001
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
-export default function App() {
-  const [route, setRoute] = useState("login");
+  mfe-login:
+    container_name: mfe-login
+    build:
+      context: ./mfe-login
+    environment:
+      - VITE_BACKEND_URL=http://backend:3001
+    ports:
+      - "5174:5174"
+    depends_on:
+      - backend
 
-  return (
-    <div style={{ fontFamily: "Arial, sans-serif" }}>
-      <header style={{ padding: 16, backgroundColor: "#282c34", color: "white" }}>
-        <h1>Micro Frontends Shell</h1>
-        <nav>
-          <button onClick={() => setRoute("login")} style={{ marginRight: 8 }}>
-            Login
-          </button>
-          <button onClick={() => setRoute("dashboard")} style={{ marginRight: 8 }}>
-            Dashboard
-          </button>
-          {/* Puedes añadir más botones para otros MFEs */}
-        </nav>
-      </header>
+  mfe-dashboard:
+    container_name: mfe-dashboard
+    build:
+      context: ./mfe-dashboard
+    environment:
+      - VITE_BACKEND_URL=http://backend:3001
+    ports:
+      - "5175:5175"
+    depends_on:
+      - backend
 
-      <main style={{ padding: 16, height: "80vh", border: "1px solid #ccc" }}>
-        {route === "shell" && <p>Bienvenido al shell principal</p>}
-        {route !== "shell" && routes[route] && (
-          <iframe
-            src={routes[route]}
-            style={{ width: "100%", height: "100%", border: "none" }}
-            title={route}
-          />
-        )}
-        {!routes[route] && route !== "shell" && <p>Página no encontrada</p>}
-      </main>
-    </div>
-  );
-}
+volumes:
+  pgdata:
 =======================================
-FIN FICHERO >> ./mfe-shell/src/App.jsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./mfe-shell/src/main.jsx
-=======================================
-// Punto de entrada para mfe-shell
-
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-=======================================
-FIN FICHERO >> ./mfe-shell/src/main.jsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./mfe-login/src/App.jsx
-=======================================
-// App.jsx sencillo para mfe-login que renderiza formulario de login
-
-import React, { useState } from "react";
-
-export default function App() {
-  const [user, setUser] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Aquí puedes conectar con backend o simular login
-    if (user === "admin" && password === "admin") {
-      setMessage("Login exitoso");
-    } else {
-      setMessage("Usuario o contraseña incorrectos");
-    }
-  };
-
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Usuario: </label>
-          <input
-            value={user}
-            onChange={(e) => setUser(e.target.value)}
-            required
-          />
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <label>Contraseña: </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" style={{ marginTop: 10 }}>
-          Entrar
-        </button>
-      </form>
-      {message && <p>{message}</p>}
-    </div>
-  );
-}
-=======================================
-FIN FICHERO >> ./mfe-login/src/App.jsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./mfe-login/src/main.jsx
-=======================================
-// Punto de entrada para mfe-login
-
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-=======================================
-FIN FICHERO >> ./mfe-login/src/main.jsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./mfe-dashboard/src/App.jsx
-=======================================
-// App.jsx simple para mfe-dashboard que muestra un dashboard de prueba
-
-import React from "react";
-
-export default function App() {
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Dashboard</h2>
-      <p>Bienvenido al dashboard de la aplicación.</p>
-      {/* Aquí irían tus widgets, gráficos o datos */}
-    </div>
-  );
-}
-=======================================
-FIN FICHERO >> ./mfe-dashboard/src/App.jsx
-=======================================
-
-=======================================
-INICIO FICHERO >> ./mfe-dashboard/src/main.jsx
-=======================================
-// Punto de entrada para mfe-dashboard
-
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-=======================================
-FIN FICHERO >> ./mfe-dashboard/src/main.jsx
+FIN FICHERO >> ./docker-compose.yml
 =======================================
