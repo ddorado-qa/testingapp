@@ -1,68 +1,152 @@
 =======================================
-INICIO FICHERO >> ./makefile.dev
+INICIO FICHERO >> ./mfe-shell/index.html
 =======================================
-# Makefile para desarrollo local de QA App con Playwright y Dashboard de selectores
-
-install:
-	docker compose run --rm backend sh -c "npm install"
-	docker compose run --rm frontend sh -c "npm install"
-	docker compose run --rm dashboard sh -c "npm install"
-	docker compose run --rm dashboard sh -c "npm install --prefix ./e2e playwright && npx playwright install --with-deps"
-
-dev: build install
-	docker compose up -d
-	docker compose logs -f
-
-build:
-	docker compose build
-
-stop:
-	docker compose down
-
-restart:
-	@echo "🔄 Reiniciando contenedores sin reconstruir..."
-	docker compose down
-	docker compose up -d
-	docker compose logs -f
-
-depack:
-	python d.py code      
-
-cleanAll:
-	docker compose down -v --remove-orphans
-	lsof -t -i tcp:3001 | xargs kill || true
-	docker compose down --volumes
-	rm -rf node_modules package-lock.json
-	docker system prune -af --volumes
-
-# 🚀 Nuevo comando: build + install + up + logs (build limpio)
-dev-all:
-	@echo "🔄 Construyendo imágenes y reinstalando dependencias..."
-	docker compose build --no-cache
-	docker compose run --rm backend sh -c "npm install"
-	docker compose run --rm frontend sh -c "npm install"
-	docker compose run --rm dashboard sh -c "npm install"
-	docker compose run --rm dashboard sh -c "npm install --prefix ./e2e playwright && npx playwright install --with-deps"
-	@echo "🚀 Levantando todos los servicios..."
-	docker compose up -d
-	@echo "📜 Mostrando logs..."
-	docker compose logs -f
-
-# ⚡ Arranque rápido sin reconstruir imágenes
-start:
-	@echo "⚡ Arranque rápido con imágenes ya construidas..."
-	docker compose up -d
-	docker compose logs -f
-
-# 🧪 Ejecutar tests E2E de Playwright
-test-e2e:
-	@echo "🧪 Ejecutando tests E2E con Playwright..."
-	docker compose run --rm dashboard sh -c "cd e2e && npx playwright test"
-
-# 🛠️ Ejecutar autoheal y registrar cambios
-test-autoheal:
-	@echo "🛠️ Ejecutando Autoheal de selectores..."
-	docker compose run --rm dashboard sh -c "node ./autoheal/run_autoheal.js && echo 'Cambios registrados en tests_info.db'"
+// HTML principal para MFE Shell
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MFE Shell</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
 =======================================
-FIN FICHERO >> ./makefile.dev
+FIN FICHERO >> ./mfe-shell/index.html
+=======================================
+
+=======================================
+INICIO FICHERO >> ./mfe-shell/src/main.jsx
+=======================================
+// Componente raíz para MFE Shell con verificación de conexión backend
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function App() {
+  const [backendStatus, setBackendStatus] = useState('Comprobando conexión...');
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then(res => res.text())
+      .then(data => setBackendStatus(`✅ Backend responde: ${data}`))
+      .catch(err => setBackendStatus(`❌ Error al conectar: ${err.message}`));
+  }, []);
+
+  return (
+    <div style={{ fontFamily: 'sans-serif', padding: 20 }}>
+      <h1>MFE Shell</h1>
+      <p>Micro Frontend principal funcionando 🎯</p>
+      <p>{backendStatus}</p>
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
+=======================================
+FIN FICHERO >> ./mfe-shell/src/main.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./mfe-login/index.html
+=======================================
+// HTML principal para MFE Login
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MFE Login</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+=======================================
+FIN FICHERO >> ./mfe-login/index.html
+=======================================
+
+=======================================
+INICIO FICHERO >> ./mfe-login/src/main.jsx
+=======================================
+// Componente raíz para MFE Login con verificación de conexión backend
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function App() {
+  const [backendStatus, setBackendStatus] = useState('Comprobando conexión...');
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then(res => res.text())
+      .then(data => setBackendStatus(`✅ Backend responde: ${data}`))
+      .catch(err => setBackendStatus(`❌ Error al conectar: ${err.message}`));
+  }, []);
+
+  return (
+    <div style={{ fontFamily: 'sans-serif', padding: 20 }}>
+      <h1>MFE Login</h1>
+      <p>Formulario de autenticación listo 🚀</p>
+      <p>{backendStatus}</p>
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
+=======================================
+FIN FICHERO >> ./mfe-login/src/main.jsx
+=======================================
+
+=======================================
+INICIO FICHERO >> ./mfe-dashboard/index.html
+=======================================
+// HTML principal para MFE Dashboard
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MFE Dashboard</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+=======================================
+FIN FICHERO >> ./mfe-dashboard/index.html
+=======================================
+
+=======================================
+INICIO FICHERO >> ./mfe-dashboard/src/main.jsx
+=======================================
+// Componente raíz para MFE Dashboard con verificación de conexión backend
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function App() {
+  const [backendStatus, setBackendStatus] = useState('Comprobando conexión...');
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then(res => res.text())
+      .then(data => setBackendStatus(`✅ Backend responde: ${data}`))
+      .catch(err => setBackendStatus(`❌ Error al conectar: ${err.message}`));
+  }, []);
+
+  return (
+    <div style={{ fontFamily: 'sans-serif', padding: 20 }}>
+      <h1>MFE Dashboard</h1>
+      <p>Panel de control funcionando 📊</p>
+      <p>{backendStatus}</p>
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
+=======================================
+FIN FICHERO >> ./mfe-dashboard/src/main.jsx
 =======================================

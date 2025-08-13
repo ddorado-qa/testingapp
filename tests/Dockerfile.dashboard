@@ -1,5 +1,3 @@
-
-# INICIO FICHERO: packages/qa/Dockerfile
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -14,12 +12,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     node -v && npm -v
 
-    # Dashboard QA selectors
-
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install express better-sqlite3
+RUN npm install --prefix ./e2e playwright @playwright/test
 RUN npx playwright install --with-deps
 
 COPY . .
@@ -36,5 +33,3 @@ CMD bash -c "\
   xterm & \
   x11vnc -display :1 -forever -nopw -shared -nolisten tcp6 & \
   tail -f /dev/null"
-# FIN FICHERO
-

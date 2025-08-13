@@ -1,32 +1,65 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const { Pool } = require('pg');
 
-const usersRouter = require("./routes/users");
-const productsRouter = require("./routes/products");
-const ordersRouter = require("./routes/orders");
-const reportsRouter = require("./routes/reports");
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
 const app = express();
-
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Rutas API
-app.use("/api/users", usersRouter);
-app.use("/api/products", productsRouter);
-app.use("/api/orders", ordersRouter);
-app.use("/api/reports", reportsRouter);
-/*
-// Static en producción
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-  });
-}
-*/
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Backend escuchando en puerto ${PORT}`);
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const result = await pool.query(
+      'SELECT id, username FROM users WHERE username = $1 AND password = $2',
+      [username, password]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    // Simple auth token (just user id for demo, no JWT)
+    res.json({ userId: result.rows[0].id, username: result.rows[0].username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/orders/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const result = await pool.query(
+      'SELECT id, product, quantity, status FROM orders WHERE user_id = $1',
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/dashboard/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    // For demo return count of orders and username
+    const userRes = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+    const ordersRes = await pool.query('SELECT COUNT(*) FROM orders WHERE user_id = $1', [userId]);
+    res.json({
+      username: userRes.rows[0].username,
+      ordersCount: parseInt(ordersRes.rows[0].count, 10),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+const port = 3001;
+app.listen(port, () => {
+  console.log(`Backend escuchando en puerto ${port}`);
 });

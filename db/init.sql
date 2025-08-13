@@ -1,25 +1,19 @@
--- Inicialización de la BBDD (se ejecuta la 1ª vez)
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL DEFAULT 'user'
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(100) NOT NULL -- in production hash this!
 );
 
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE orders (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  price NUMERIC NOT NULL DEFAULT 0,
-  stock INTEGER NOT NULL DEFAULT 0
+  user_id INTEGER REFERENCES users(id),
+  product VARCHAR(100),
+  quantity INTEGER,
+  status VARCHAR(50)
 );
 
--- Datos de ejemplo
-INSERT INTO users (name, email, role) VALUES
-  ('Alice', 'alice@example.com', 'admin'),
-  ('Bob', 'bob@example.com', 'user')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO products (name, price, stock) VALUES
-  ('Widget A', 9.99, 10),
-  ('Widget B', 19.99, 5)
-ON CONFLICT DO NOTHING;
+-- Insert demo user
+INSERT INTO users (username, password) VALUES ('testuser', 'password123');
+INSERT INTO orders (user_id, product, quantity, status) VALUES
+  (1, 'Product A', 3, 'pending'),
+  (1, 'Product B', 1, 'shipped');
