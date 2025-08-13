@@ -1,152 +1,165 @@
 =======================================
-INICIO FICHERO >> ./mfe-shell/index.html
+INICIO FICHERO >> ./mfe-shell/src/App.jsx
 =======================================
-// HTML principal para MFE Shell
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MFE Shell</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+// Componente React principal del shell que usa iframes para cargar cada MFE por URL
+
+import React, { useState } from "react";
+
+const routes = {
+  login: "http://localhost:5174",
+  dashboard: "http://localhost:5175",
+  shell: null, // Shell mismo o alguna página base si quieres
+};
+
+export default function App() {
+  const [route, setRoute] = useState("login");
+
+  return (
+    <div style={{ fontFamily: "Arial, sans-serif" }}>
+      <header style={{ padding: 16, backgroundColor: "#282c34", color: "white" }}>
+        <h1>Micro Frontends Shell</h1>
+        <nav>
+          <button onClick={() => setRoute("login")} style={{ marginRight: 8 }}>
+            Login
+          </button>
+          <button onClick={() => setRoute("dashboard")} style={{ marginRight: 8 }}>
+            Dashboard
+          </button>
+          {/* Puedes añadir más botones para otros MFEs */}
+        </nav>
+      </header>
+
+      <main style={{ padding: 16, height: "80vh", border: "1px solid #ccc" }}>
+        {route === "shell" && <p>Bienvenido al shell principal</p>}
+        {route !== "shell" && routes[route] && (
+          <iframe
+            src={routes[route]}
+            style={{ width: "100%", height: "100%", border: "none" }}
+            title={route}
+          />
+        )}
+        {!routes[route] && route !== "shell" && <p>Página no encontrada</p>}
+      </main>
+    </div>
+  );
+}
 =======================================
-FIN FICHERO >> ./mfe-shell/index.html
+FIN FICHERO >> ./mfe-shell/src/App.jsx
 =======================================
 
 =======================================
 INICIO FICHERO >> ./mfe-shell/src/main.jsx
 =======================================
-// Componente raíz para MFE Shell con verificación de conexión backend
-import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+// Punto de entrada para mfe-shell
 
-function App() {
-  const [backendStatus, setBackendStatus] = useState('Comprobando conexión...');
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.text())
-      .then(data => setBackendStatus(`✅ Backend responde: ${data}`))
-      .catch(err => setBackendStatus(`❌ Error al conectar: ${err.message}`));
-  }, []);
-
-  return (
-    <div style={{ fontFamily: 'sans-serif', padding: 20 }}>
-      <h1>MFE Shell</h1>
-      <p>Micro Frontend principal funcionando 🎯</p>
-      <p>{backendStatus}</p>
-    </div>
-  );
-}
-
-createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 =======================================
 FIN FICHERO >> ./mfe-shell/src/main.jsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./mfe-login/index.html
+INICIO FICHERO >> ./mfe-login/src/App.jsx
 =======================================
-// HTML principal para MFE Login
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MFE Login</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+// App.jsx sencillo para mfe-login que renderiza formulario de login
+
+import React, { useState } from "react";
+
+export default function App() {
+  const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Aquí puedes conectar con backend o simular login
+    if (user === "admin" && password === "admin") {
+      setMessage("Login exitoso");
+    } else {
+      setMessage("Usuario o contraseña incorrectos");
+    }
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Usuario: </label>
+          <input
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+            required
+          />
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <label>Contraseña: </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" style={{ marginTop: 10 }}>
+          Entrar
+        </button>
+      </form>
+      {message && <p>{message}</p>}
+    </div>
+  );
+}
 =======================================
-FIN FICHERO >> ./mfe-login/index.html
+FIN FICHERO >> ./mfe-login/src/App.jsx
 =======================================
 
 =======================================
 INICIO FICHERO >> ./mfe-login/src/main.jsx
 =======================================
-// Componente raíz para MFE Login con verificación de conexión backend
-import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+// Punto de entrada para mfe-login
 
-function App() {
-  const [backendStatus, setBackendStatus] = useState('Comprobando conexión...');
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.text())
-      .then(data => setBackendStatus(`✅ Backend responde: ${data}`))
-      .catch(err => setBackendStatus(`❌ Error al conectar: ${err.message}`));
-  }, []);
-
-  return (
-    <div style={{ fontFamily: 'sans-serif', padding: 20 }}>
-      <h1>MFE Login</h1>
-      <p>Formulario de autenticación listo 🚀</p>
-      <p>{backendStatus}</p>
-    </div>
-  );
-}
-
-createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 =======================================
 FIN FICHERO >> ./mfe-login/src/main.jsx
 =======================================
 
 =======================================
-INICIO FICHERO >> ./mfe-dashboard/index.html
+INICIO FICHERO >> ./mfe-dashboard/src/App.jsx
 =======================================
-// HTML principal para MFE Dashboard
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MFE Dashboard</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+// App.jsx simple para mfe-dashboard que muestra un dashboard de prueba
+
+import React from "react";
+
+export default function App() {
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Dashboard</h2>
+      <p>Bienvenido al dashboard de la aplicación.</p>
+      {/* Aquí irían tus widgets, gráficos o datos */}
+    </div>
+  );
+}
 =======================================
-FIN FICHERO >> ./mfe-dashboard/index.html
+FIN FICHERO >> ./mfe-dashboard/src/App.jsx
 =======================================
 
 =======================================
 INICIO FICHERO >> ./mfe-dashboard/src/main.jsx
 =======================================
-// Componente raíz para MFE Dashboard con verificación de conexión backend
-import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+// Punto de entrada para mfe-dashboard
 
-function App() {
-  const [backendStatus, setBackendStatus] = useState('Comprobando conexión...');
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then(res => res.text())
-      .then(data => setBackendStatus(`✅ Backend responde: ${data}`))
-      .catch(err => setBackendStatus(`❌ Error al conectar: ${err.message}`));
-  }, []);
-
-  return (
-    <div style={{ fontFamily: 'sans-serif', padding: 20 }}>
-      <h1>MFE Dashboard</h1>
-      <p>Panel de control funcionando 📊</p>
-      <p>{backendStatus}</p>
-    </div>
-  );
-}
-
-createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 =======================================
 FIN FICHERO >> ./mfe-dashboard/src/main.jsx
 =======================================
